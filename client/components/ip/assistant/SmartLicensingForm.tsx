@@ -381,7 +381,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             }`}
           />
           <div className="flex-1">
-            <span className="text-sm font-semibold text-slate-200">
+            <span className="text-xs font-semibold text-slate-200">
               Allow AI Training
             </span>
             {isAiGeneratedGroup(group) && (
@@ -398,7 +398,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
         <div className="mb-6 p-4 bg-slate-800/30 rounded-lg">
           <div className="flex items-center gap-3 mb-3">
             <Loader2 size={18} className="text-pink-500 animate-spin" />
-            <span className="text-sm font-semibold text-white capitalize">
+            <span className="text-xs font-semibold text-white capitalize">
               {registerState.status.replace("-", " ")}...
             </span>
           </div>
