@@ -312,13 +312,15 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
             <h3 className="text-sm font-bold mb-1 text-white">
               Analysis Result
             </h3>
-            <p className="text-gray-400 text-xs">
-              Group{" "}
-              <span className="font-bold text-white">
-                {classification.group}
-              </span>{" "}
-              • <span className="text-white/80">{classification.type}</span>
-            </p>
+            {classification.group !== 15 && (
+              <p className="text-gray-400 text-xs">
+                Group{" "}
+                <span className="font-bold text-white">
+                  {classification.group}
+                </span>{" "}
+                • <span className="text-white/80">{classification.type}</span>
+              </p>
+            )}
           </div>
 
           <div className="rounded-lg bg-gray-800/30 overflow-hidden text-xs max-h-72 overflow-y-auto">
