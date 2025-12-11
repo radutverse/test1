@@ -87,46 +87,6 @@ export function useIPRegistrationAgent() {
       ethereumProvider?: any,
     ) => {
       try {
-        // ============================================
-        // TIER 1: HASH/VISION DETECTION (BLOCKING)
-        // ============================================
-        // Check if image is a remix or similar to existing IPs
-        // If blocked here, stop immediately - do NOT proceed to Tier 2
-
-        // Vision-based image detection (most powerful)
-        try {
-          const formData = new FormData();
-          formData.append("image", file);
-          const visionResponse = await fetch("/api/vision-image-detection", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (visionResponse.ok) {
-            const visionCheck = await visionResponse.json();
-            if (visionCheck.blocked) {
-              setRegisterState({
-                status: "error",
-                progress: 0,
-                error:
-                  visionCheck.message ||
-                  "Image mirip dengan IP yang sudah terdaftar. Tidak dapat registrasi.",
-              });
-              return { success: false, reason: "vision_match_found" } as const;
-            }
-          }
-        } catch (visionError) {
-          console.warn(
-            "Vision-based detection failed, continuing:",
-            visionError,
-          );
-          // Don't block registration if vision check fails
-        }
-
-        // ✅ TIER 1 DETECTION COMPLETE
-        // Vision checks passed - image is allowed to proceed
-        // Now continue to Tier 2: Brand/Character detection
-
         const licenseSettings = getLicenseSettingsByGroup(
           group,
           aiTrainingManual,
