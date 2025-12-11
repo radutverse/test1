@@ -23,7 +23,7 @@ const DUMMY_DATA: Record<"ip" | "image" | "video" | "music", PopularItem[]> = {
       title: "Ippy Background",
       owner: "Radut",
       preview:
-        "https://cdn.builder.io/api/v1/image/assets%2F01304b38e2b147e0ab91328119e9a69b%2F2e3c90e4481c48f69e5c39498a60f29e?format=webp&width=800",
+        "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800",
     },
   ],
   image: [
