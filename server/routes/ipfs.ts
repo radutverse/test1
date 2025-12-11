@@ -1,4 +1,6 @@
 import multer from "multer";
+import axios from "axios";
+import FormData from "form-data";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -11,37 +13,53 @@ const PINATA_GATEWAY = process.env.PINATA_GATEWAY; // e.g. mysubdomain.mypinata.
 async function pinFileToPinata(name: string, buffer: Buffer, mimetype: string) {
   if (!PINATA_JWT) throw new Error("PINATA_JWT not set");
   const form = new FormData();
-  const blob = new Blob([new Uint8Array(buffer)], {
-    type: mimetype || "application/octet-stream",
-  });
-  form.append("file", blob, name || "file");
-  const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${PINATA_JWT}` },
-    body: form as any,
-  } as any);
-  if (!res.ok) throw new Error(`pinata_file_error:${res.status}`);
-  const j = (await res.json()) as any;
-  const cid: string = j?.IpfsHash || j?.Hash || j?.cid;
-  if (!cid) throw new Error("cid_missing");
-  return cid;
+  form.append("file", buffer, { filename: name || "file", contentType: mimetype || "application/octet-stream" });
+
+  const options = {
+    method: "POST" as const,
+    headers: {
+      Authorization: `Bearer ${PINATA_JWT}`,
+      ...form.getHeaders(),
+    },
+    data: form,
+  };
+
+  try {
+    const response = await axios("https://api.pinata.cloud/pinning/pinFileToIPFS", options);
+    const cid: string = response.data?.IpfsHash || response.data?.Hash || response.data?.cid;
+    if (!cid) throw new Error("cid_missing");
+    return cid;
+  } catch (error) {
+    const status = (error as any)?.response?.status;
+    throw new Error(`pinata_file_error:${status || "unknown"}`);
+  }
 }
 
 async function pinJsonToPinata(json: unknown) {
   if (!PINATA_JWT) throw new Error("PINATA_JWT not set");
-  const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
-    method: "POST",
+  const url = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
+  const options = {
+    method: "POST" as const,
     headers: {
       Authorization: `Bearer ${PINATA_JWT}`,
       "Content-Type": "application/json",
     },
-    body: typeof json === "string" ? json : JSON.stringify(json ?? {}),
-  } as any);
-  if (!res.ok) throw new Error(`pinata_json_error:${res.status}`);
-  const j = (await res.json()) as any;
-  const cid: string = j?.IpfsHash || j?.Hash || j?.cid;
-  if (!cid) throw new Error("cid_missing");
-  return cid;
+    data: {
+      pinataOptions: { cidVersion: 0 },
+      pinataMetadata: { name: "ip-metadata.json" },
+      pinataContent: json,
+    },
+  };
+
+  try {
+    const response = await axios(url, options);
+    const cid: string = response.data?.IpfsHash || response.data?.Hash || response.data?.cid;
+    if (!cid) throw new Error("cid_missing");
+    return cid;
+  } catch (error) {
+    const status = (error as any)?.response?.status;
+    throw new Error(`pinata_json_error:${status || "unknown"}`);
+  }
 }
 
 export const handleIpfsUpload: any = [
