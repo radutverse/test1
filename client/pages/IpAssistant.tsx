@@ -2084,6 +2084,7 @@ const IpAssistant = () => {
                         config.aiTraining,
                         { title: licensingMsg.title, prompt: licensingMsg.description },
                         ethProvider,
+                        config.licenseType,
                       );
                     }}
                   />
