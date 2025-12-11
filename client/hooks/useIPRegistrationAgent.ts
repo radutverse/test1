@@ -13,13 +13,14 @@ import {
   PILFlavor,
   WIP_TOKEN_ADDRESS,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther } from "viem";
+import { createWalletClient, custom, parseEther, http } from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
   requiresSubmitReview,
   isAiGeneratedGroup,
 } from "@/lib/groupLicense";
+import { privateKeyToAccount } from "viem/accounts";
 
 export type RegisterState = {
   status:
@@ -38,6 +39,7 @@ export type RegisterState = {
 };
 
 async function compressImage(file: File): Promise<File> {
+  // Simple browser-side downscale to JPEG
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const img = new Image();
     const fr = new FileReader();
@@ -90,18 +92,17 @@ export function useIPRegistrationAgent() {
         // ============================================
         // TIER 1: HASH/VISION DETECTION (BLOCKING)
         // ============================================
+        // Run vision and hash checks in PARALLEL (not sequential)
         const [visionResult, hashResult] = await Promise.allSettled([
+          // Vision-based image detection (most powerful)
           (async () => {
             try {
               const formData = new FormData();
               formData.append("image", file);
-              const visionResponse = await fetch(
-                "/api/vision-image-detection",
-                {
-                  method: "POST",
-                  body: formData,
-                },
-              );
+              const visionResponse = await fetch("/api/vision-image-detection", {
+                method: "POST",
+                body: formData,
+              });
 
               if (visionResponse.ok) {
                 const visionCheck = await visionResponse.json();
@@ -123,6 +124,7 @@ export function useIPRegistrationAgent() {
               return { blocked: false };
             }
           })(),
+          // Hash whitelist check
           (async () => {
             try {
               const hash = await calculateFileHash(file);
@@ -144,19 +146,14 @@ export function useIPRegistrationAgent() {
               }
               return { found: false };
             } catch (hashError) {
-              console.warn(
-                "Hash whitelist check failed, continuing:",
-                hashError,
-              );
+              console.warn("Hash whitelist check failed, continuing:", hashError);
               return { found: false };
             }
           })(),
         ]);
 
-        if (
-          visionResult.status === "fulfilled" &&
-          visionResult.value?.blocked
-        ) {
+        // Handle vision detection blocking
+        if (visionResult.status === "fulfilled" && visionResult.value?.blocked) {
           setRegisterState({
             status: "error",
             progress: 0,
@@ -165,6 +162,7 @@ export function useIPRegistrationAgent() {
           return { success: false, reason: "vision_match_found" } as const;
         }
 
+        // Handle hash remix offer
         if (hashResult.status === "fulfilled" && hashResult.value?.found) {
           setRegisterState({
             status: "idle",
@@ -178,6 +176,9 @@ export function useIPRegistrationAgent() {
             matchedTitle: hashResult.value.title,
           } as const;
         }
+
+        // ✅ TIER 1 DETECTION COMPLETE
+        // Hash/Vision checks passed - image is allowed to proceed
 
         const licenseSettings = getLicenseSettingsByGroup(
           group,
@@ -207,6 +208,7 @@ export function useIPRegistrationAgent() {
         setRegisterState({ status: "compressing", progress: 10, error: null });
         const compressedFile = await compressImage(file);
 
+        // Parallel: upload image + calculate creator address while compressing
         setRegisterState((p) => ({
           ...p,
           status: "uploading-image",
@@ -229,9 +231,19 @@ export function useIPRegistrationAgent() {
               }
             } catch {}
             if (!addr) {
-              throw new Error(
-                "No wallet address available. Please connect your wallet.",
-              );
+              try {
+                const guestPk = (import.meta as any).env
+                  ?.VITE_GUEST_PRIVATE_KEY;
+                if (guestPk) {
+                  const normalized = String(guestPk).startsWith("0x")
+                    ? String(guestPk)
+                    : `0x${String(guestPk)}`;
+                  const guestAccount = privateKeyToAccount(
+                    normalized as `0x${string}`,
+                  );
+                  addr = guestAccount.address;
+                }
+              } catch {}
             }
             return addr;
           })(),
@@ -286,20 +298,22 @@ export function useIPRegistrationAgent() {
           progress: 60,
         }));
 
-        const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION_USERS;
+        // Prepare resources in parallel
+        const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION;
         if (!spg)
           throw new Error(
-            "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION_USERS)",
+            "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION)",
           );
         const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC;
         if (!rpcUrl) throw new Error("RPC URL not set (VITE_PUBLIC_STORY_RPC)");
 
+        // Parallel: upload metadata + initialize wallet client + build license terms
         const [ipMetaUpload, storyClientSetup] = await Promise.all([
           uploadJSON(ipMetadata),
           (async () => {
             const provider = ethereumProvider;
             let addr: string | undefined;
-            let story: StoryClient;
+            let story: any;
             if (provider) {
               try {
                 const chainIdHex: string = await provider.request({
@@ -340,39 +354,35 @@ export function useIPRegistrationAgent() {
                   }
                 }
               } catch {}
-
-              try {
-                const accounts = await provider.request({
-                  method: "eth_accounts",
-                });
-
-                if (!accounts || accounts.length === 0) {
-                  await provider.request({
-                    method: "eth_requestAccounts",
-                  });
-                }
-              } catch (accountError: any) {
-                throw new Error(
-                  `Failed to connect wallet: ${accountError.message}`,
-                );
-              }
-
               const walletClient = createWalletClient({
                 transport: custom(provider),
               });
               const [a] = await walletClient.getAddresses();
               if (!a) throw new Error("No wallet address available");
               addr = a as string;
-
               story = StoryClient.newClient({
-                account: addr as `0x${string}`,
+                account: addr as any,
                 transport: custom(provider),
-                chainId: "mainnet",
+                chainId: 1514,
               });
             } else {
-              throw new Error(
-                "No wallet connected. Please connect your wallet to register IP.",
+              const guestPk = (import.meta as any).env?.VITE_GUEST_PRIVATE_KEY;
+              if (!guestPk)
+                throw new Error(
+                  "No wallet connected and guest key not configured (VITE_GUEST_PRIVATE_KEY).",
+                );
+              const normalized = String(guestPk).startsWith("0x")
+                ? String(guestPk)
+                : `0x${String(guestPk)}`;
+              const guestAccount = privateKeyToAccount(
+                normalized as `0x${string}`,
               );
+              addr = guestAccount.address;
+              story = StoryClient.newClient({
+                account: guestAccount as any,
+                transport: http(rpcUrl),
+                chainId: 1514,
+              });
             }
             return { addr, story };
           })(),
@@ -385,86 +395,34 @@ export function useIPRegistrationAgent() {
         const addr = storyClientSetup.addr;
         const story = storyClientSetup.story;
 
-        // ✅ PERBAIKAN: licenseTermsData dengan isSet: true
-        const commercialRevShareValue = Number(licenseSettings.revShare) || 0;
-        const mintingFeeValue = parseEther(
-          String(licenseSettings.licensePrice || 0),
-        );
-
+        // Build license terms for Story SDK
         const licenseTermsData = [
           {
             terms: PILFlavor.commercialRemix({
-              commercialRevShare: commercialRevShareValue,
-              defaultMintingFee: mintingFeeValue,
+              commercialRevShare: Number(licenseSettings.revShare) || 0,
+              defaultMintingFee: parseEther(
+                String(licenseSettings.licensePrice || 0),
+              ),
               currency: WIP_TOKEN_ADDRESS,
             }),
-            licensingConfig: {
-              isSet: true, // ✅ HARUS TRUE agar license aktif dan terdeteksi
-              mintingFee: mintingFeeValue,
-              licensingHook: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-              hookData: "0x" as `0x${string}`,
-              commercialRevShare: commercialRevShareValue,
-              disabled: false,
-              expectMinimumGroupRewardShare: 0,
-              expectGroupRewardPool: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-            },
           },
         ];
 
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
-        let result: any;
-        try {
-          console.log("Starting mint and register transaction...", {
-            spgNftContract: spg,
-            recipient: addr,
-            licenseTermsData,
-          });
-
-          result = await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
+        const result: any =
+          await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
             spgNftContract: spg as `0x${string}`,
             recipient: addr as `0x${string}`,
             licenseTermsData,
             ipMetadata: {
               ipMetadataURI,
-              ipMetadataHash: ipMetadataHash as `0x${string}`,
+              ipMetadataHash: ipMetadataHash as any,
               nftMetadataURI: ipMetadataURI,
-              nftMetadataHash: ipMetadataHash as `0x${string}`,
+              nftMetadataHash: ipMetadataHash as any,
             },
             allowDuplicates: true,
           });
-
-          console.log("✅ Mint and register transaction submitted", {
-            ipId: result?.ipId,
-            txHash: result?.txHash || result?.transactionHash,
-            licenseTermsIds: result?.licenseTermsIds,
-            result,
-          });
-
-          setRegisterState((p) => ({ ...p, progress: 90 }));
-        } catch (txError: any) {
-          console.error("❌ Mint and register transaction failed:", {
-            message: txError?.message,
-            code: txError?.code,
-            error: txError,
-          });
-
-          if (
-            txError?.code === 4001 ||
-            txError?.message?.includes("User rejected")
-          ) {
-            throw new Error("Transaction was rejected by the user");
-          }
-          if (txError?.message?.includes("insufficient funds")) {
-            throw new Error("Insufficient funds for gas and transaction");
-          }
-          if (txError?.message?.includes("network")) {
-            throw new Error(
-              "Network error. Please check your connection and try again",
-            );
-          }
-          throw txError;
-        }
 
         setRegisterState({
           status: "success",
@@ -477,42 +435,21 @@ export function useIPRegistrationAgent() {
           success: true,
           ipId: result?.ipId,
           txHash: result?.txHash || result?.transactionHash,
-          licenseTermsIds: result?.licenseTermsIds,
           imageUrl: imageGateway,
           ipMetadataUrl: toHttps(ipMetaCid),
         } as const;
       } catch (error: any) {
         const errorMsg =
           error?.message || error?.data?.message || String(error);
-
-        let userFriendlyMsg = errorMsg;
-        if (errorMsg.includes("rejected by the user")) {
-          userFriendlyMsg =
-            "❌ You rejected the transaction. Please try again if you want to proceed.";
-        } else if (errorMsg.includes("insufficient funds")) {
-          userFriendlyMsg =
-            "❌ Insufficient funds for gas fees. Please add more IP tokens.";
-        } else if (errorMsg.includes("network")) {
-          userFriendlyMsg =
-            "❌ Network connection error. Please check your connection and try again.";
-        } else if (errorMsg.includes("CallerNotAuthorizedToMint")) {
-          userFriendlyMsg =
-            "❌ Your wallet is not authorized to mint on this contract. Please check with the admin.";
-        }
-
         console.error("❌ Registration failed:", {
           message: errorMsg,
           error,
           stack: error?.stack,
         });
-        setRegisterState({
-          status: "error",
-          progress: 0,
-          error: userFriendlyMsg,
-        });
+        setRegisterState({ status: "error", progress: 0, error: errorMsg });
         return {
           success: false,
-          error: userFriendlyMsg,
+          error: errorMsg,
         } as const;
       }
     },
