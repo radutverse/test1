@@ -13,34 +13,12 @@ function getColorFromPrompt(text: string): string {
 
 // Generate a realistic-looking dummy SVG image based on prompt
 function generateDemoSvgImage(prompt: string): string {
-  const color = getColorFromPrompt(prompt);
-  const colorRgb = hslToRgb(color);
-  const contrastColor = getContrastColor(colorRgb);
+  // Use the user's custom image as the base
+  const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
 
-  // Create an SVG with gradient, pattern, and text
   const svg = `
     <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${color};stop-opacity:0.8" />
-          <stop offset="100%" style="stop-color:hsl(${getHueFromColor(color) + 30}, 70%, 40%);stop-opacity:0.9" />
-        </linearGradient>
-        <pattern id="pattern" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
-          <rect width="50" height="50" fill="${color}" opacity="0.1"/>
-          <circle cx="25" cy="25" r="10" fill="${color}" opacity="0.15"/>
-        </pattern>
-      </defs>
-      <rect width="1024" height="1024" fill="url(#grad1)"/>
-      <rect width="1024" height="1024" fill="url(#pattern)"/>
-      <circle cx="200" cy="200" r="150" fill="${color}" opacity="0.3"/>
-      <circle cx="824" cy="824" r="200" fill="${color}" opacity="0.2"/>
-      <rect x="100" y="100" width="824" height="824" rx="20" ry="20" fill="none" stroke="${color}" stroke-width="3" opacity="0.4"/>
-      <text x="512" y="480" font-size="48" font-weight="bold" text-anchor="middle" fill="${contrastColor}" opacity="0.7">
-        DEMO MODE
-      </text>
-      <text x="512" y="550" font-size="24" text-anchor="middle" fill="${contrastColor}" opacity="0.6" font-style="italic">
-        ${escapeXml(prompt.substring(0, 50))}${prompt.length > 50 ? "..." : ""}
-      </text>
+      <image width="1024" height="1024" href="${customImageUrl}" preserveAspectRatio="xMidYMid slice"/>
     </svg>
   `;
 
