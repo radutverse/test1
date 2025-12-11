@@ -24,24 +24,20 @@ export async function addCanvasWatermark(
 
       ctx.drawImage(img, 0, 0);
 
-      const fontSize = Math.max(40, Math.floor(img.width / 10));
-      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+      // Draw a large lock emoji in the center
+      const fontSize = Math.max(200, Math.floor(img.width / 3));
+      ctx.font = `${fontSize}px Arial, sans-serif`;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
       ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 4;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const spacing = img.height / 4;
-      const startY = spacing;
+      const centerX = img.width / 2;
+      const centerY = img.height / 2;
 
-      for (let i = 0; i < 5; i++) {
-        const y = startY + i * spacing;
-        const x = img.width / 2;
-
-        ctx.strokeText(watermarkText, x, y);
-        ctx.fillText(watermarkText, x, y);
-      }
+      ctx.strokeText("🔒", centerX, centerY);
+      ctx.fillText("🔒", centerX, centerY);
 
       // Convert canvas to data URL (permanent, can be saved to database)
       // instead of blob URL (temporary, tied to browser session)
