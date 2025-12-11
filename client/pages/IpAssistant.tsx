@@ -2051,7 +2051,7 @@ const IpAssistant = () => {
                     title={licensingMsg.title}
                     description={licensingMsg.description}
                     imageUrl={imageUrl}
-                    isLoading={registerState.status === "minting"}
+                    registerState={registerState}
                     onRegister={async (config) => {
                       if (!ctxKey) {
                         alert("No analysis context found.");
