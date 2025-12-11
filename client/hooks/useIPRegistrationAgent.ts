@@ -38,7 +38,6 @@ export type RegisterState = {
 };
 
 async function compressImage(file: File): Promise<File> {
-  // Simple browser-side downscale to JPEG
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const img = new Image();
     const fr = new FileReader();
@@ -91,9 +90,7 @@ export function useIPRegistrationAgent() {
         // ============================================
         // TIER 1: HASH/VISION DETECTION (BLOCKING)
         // ============================================
-        // Run vision and hash checks in PARALLEL (not sequential)
         const [visionResult, hashResult] = await Promise.allSettled([
-          // Vision-based image detection (most powerful)
           (async () => {
             try {
               const formData = new FormData();
@@ -126,7 +123,6 @@ export function useIPRegistrationAgent() {
               return { blocked: false };
             }
           })(),
-          // Hash whitelist check
           (async () => {
             try {
               const hash = await calculateFileHash(file);
@@ -157,7 +153,6 @@ export function useIPRegistrationAgent() {
           })(),
         ]);
 
-        // Handle vision detection blocking
         if (
           visionResult.status === "fulfilled" &&
           visionResult.value?.blocked
@@ -170,7 +165,6 @@ export function useIPRegistrationAgent() {
           return { success: false, reason: "vision_match_found" } as const;
         }
 
-        // Handle hash remix offer
         if (hashResult.status === "fulfilled" && hashResult.value?.found) {
           setRegisterState({
             status: "idle",
@@ -184,9 +178,6 @@ export function useIPRegistrationAgent() {
             matchedTitle: hashResult.value.title,
           } as const;
         }
-
-        // ✅ TIER 1 DETECTION COMPLETE
-        // Hash/Vision checks passed - image is allowed to proceed
 
         const licenseSettings = getLicenseSettingsByGroup(
           group,
@@ -216,7 +207,6 @@ export function useIPRegistrationAgent() {
         setRegisterState({ status: "compressing", progress: 10, error: null });
         const compressedFile = await compressImage(file);
 
-        // Parallel: upload image + calculate creator address while compressing
         setRegisterState((p) => ({
           ...p,
           status: "uploading-image",
@@ -296,8 +286,6 @@ export function useIPRegistrationAgent() {
           progress: 60,
         }));
 
-        // Prepare resources in parallel
-        // Use wallet-only SPG collection
         const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION_USERS;
         if (!spg)
           throw new Error(
@@ -306,18 +294,18 @@ export function useIPRegistrationAgent() {
         const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC;
         if (!rpcUrl) throw new Error("RPC URL not set (VITE_PUBLIC_STORY_RPC)");
 
-        // Parallel: upload metadata + initialize wallet client + build license terms
         const [ipMetaUpload, storyClientSetup] = await Promise.all([
           uploadJSON(ipMetadata),
           (async () => {
             const provider = ethereumProvider;
             let addr: string | undefined;
-            let story: any;
+            let story: StoryClient;
             if (provider) {
               try {
                 const chainIdHex: string = await provider.request({
                   method: "eth_chainId",
                 });
+                // 0x5ea = 1514 (mainnet), 0x523 = 1315 (aeneid testnet)
                 if (chainIdHex?.toLowerCase() !== "0x5ea") {
                   try {
                     await provider.request({
@@ -353,14 +341,13 @@ export function useIPRegistrationAgent() {
                   }
                 }
               } catch {}
-              // Ensure wallet is connected and has accounts
+
               try {
                 const accounts = await provider.request({
                   method: "eth_accounts",
                 });
 
                 if (!accounts || accounts.length === 0) {
-                  // Request account access if not connected
                   await provider.request({
                     method: "eth_requestAccounts",
                   });
@@ -377,10 +364,12 @@ export function useIPRegistrationAgent() {
               const [a] = await walletClient.getAddresses();
               if (!a) throw new Error("No wallet address available");
               addr = a as string;
+
+              // ✅ PERBAIKAN: chainId harus string "mainnet" atau "aeneid"
               story = StoryClient.newClient({
-                account: addr as any,
+                account: addr as `0x${string}`,
                 transport: custom(provider),
-                chainId: 1514,
+                chainId: "mainnet", // atau "aeneid" untuk testnet
               });
             } else {
               throw new Error(
@@ -398,7 +387,7 @@ export function useIPRegistrationAgent() {
         const addr = storyClientSetup.addr;
         const story = storyClientSetup.story;
 
-        // Build license terms for Story SDK
+        // ✅ PERBAIKAN: licenseTermsData dengan format yang benar
         const licenseTermsData = [
           {
             terms: PILFlavor.commercialRemix({
@@ -408,6 +397,17 @@ export function useIPRegistrationAgent() {
               ),
               currency: WIP_TOKEN_ADDRESS,
             }),
+            // ✅ TAMBAHAN: licensingConfig (opsional tapi recommended)
+            licensingConfig: {
+              isSet: false,
+              mintingFee: 0n,
+              licensingHook: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+              hookData: "0x" as `0x${string}`,
+              commercialRevShare: 0,
+              disabled: false,
+              expectMinimumGroupRewardShare: 0,
+              expectGroupRewardPool: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+            },
           },
         ];
 
@@ -426,9 +426,9 @@ export function useIPRegistrationAgent() {
             licenseTermsData,
             ipMetadata: {
               ipMetadataURI,
-              ipMetadataHash: ipMetadataHash as any,
+              ipMetadataHash: ipMetadataHash as `0x${string}`,
               nftMetadataURI: ipMetadataURI,
-              nftMetadataHash: ipMetadataHash as any,
+              nftMetadataHash: ipMetadataHash as `0x${string}`,
             },
             allowDuplicates: true,
           });
@@ -447,14 +447,12 @@ export function useIPRegistrationAgent() {
             error: txError,
           });
 
-          // Check if user rejected the transaction
           if (
             txError?.code === 4001 ||
             txError?.message?.includes("User rejected")
           ) {
             throw new Error("Transaction was rejected by the user");
           }
-          // Check for other common wallet errors
           if (txError?.message?.includes("insufficient funds")) {
             throw new Error("Insufficient funds for gas and transaction");
           }
@@ -463,7 +461,6 @@ export function useIPRegistrationAgent() {
               "Network error. Please check your connection and try again",
             );
           }
-          // Re-throw with original error if not a known case
           throw txError;
         }
 
@@ -485,7 +482,6 @@ export function useIPRegistrationAgent() {
         const errorMsg =
           error?.message || error?.data?.message || String(error);
 
-        // Provide user-friendly error messages
         let userFriendlyMsg = errorMsg;
         if (errorMsg.includes("rejected by the user")) {
           userFriendlyMsg =
