@@ -418,7 +418,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       <button
         onClick={handleRegister}
         disabled={isLoading}
-        className={`w-full px-6 py-3 font-semibold rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${
+        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${
           isLoading
             ? "bg-slate-700 cursor-not-allowed opacity-70 text-slate-300"
             : "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white hover:shadow-pink-500/25"
