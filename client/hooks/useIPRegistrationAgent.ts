@@ -13,14 +13,13 @@ import {
   PILFlavor,
   WIP_TOKEN_ADDRESS,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther, http } from "viem";
+import { createWalletClient, custom, parseEther } from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
   requiresSubmitReview,
   isAiGeneratedGroup,
 } from "@/lib/groupLicense";
-import { privateKeyToAccount } from "viem/accounts";
 
 export type RegisterState = {
   status:
@@ -39,7 +38,6 @@ export type RegisterState = {
 };
 
 async function compressImage(file: File): Promise<File> {
-  // Simple browser-side downscale to JPEG
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const img = new Image();
     const fr = new FileReader();
@@ -92,73 +90,94 @@ export function useIPRegistrationAgent() {
         // ============================================
         // TIER 1: HASH/VISION DETECTION (BLOCKING)
         // ============================================
-        // Check if image is a remix or similar to existing IPs
-        // If blocked here, stop immediately - do NOT proceed to Tier 2
+        const [visionResult, hashResult] = await Promise.allSettled([
+          (async () => {
+            try {
+              const formData = new FormData();
+              formData.append("image", file);
+              const visionResponse = await fetch(
+                "/api/vision-image-detection",
+                {
+                  method: "POST",
+                  body: formData,
+                },
+              );
 
-        // Vision-based image detection (most powerful)
-        try {
-          const formData = new FormData();
-          formData.append("image", file);
-          const visionResponse = await fetch("/api/vision-image-detection", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (visionResponse.ok) {
-            const visionCheck = await visionResponse.json();
-            if (visionCheck.blocked) {
-              setRegisterState({
-                status: "error",
-                progress: 0,
-                error:
-                  visionCheck.message ||
-                  "Image mirip dengan IP yang sudah terdaftar. Tidak dapat registrasi.",
-              });
-              return { success: false, reason: "vision_match_found" } as const;
+              if (visionResponse.ok) {
+                const visionCheck = await visionResponse.json();
+                if (visionCheck.blocked) {
+                  return {
+                    blocked: true,
+                    message:
+                      visionCheck.message ||
+                      "Image mirip dengan IP yang sudah terdaftar. Tidak dapat registrasi.",
+                  };
+                }
+              }
+              return { blocked: false };
+            } catch (visionError) {
+              console.warn(
+                "Vision-based detection failed, continuing:",
+                visionError,
+              );
+              return { blocked: false };
             }
-          }
-        } catch (visionError) {
-          console.warn(
-            "Vision-based detection failed, continuing:",
-            visionError,
-          );
-          // Don't block registration if vision check fails
+          })(),
+          (async () => {
+            try {
+              const hash = await calculateFileHash(file);
+              const hashCheckResponse = await fetch("/api/check-remix-hash", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ hash }),
+              });
+
+              if (hashCheckResponse.ok) {
+                const hashCheck = await hashCheckResponse.json();
+                if (hashCheck.found) {
+                  return {
+                    found: true,
+                    ipId: hashCheck.ipId,
+                    title: hashCheck.title,
+                  };
+                }
+              }
+              return { found: false };
+            } catch (hashError) {
+              console.warn(
+                "Hash whitelist check failed, continuing:",
+                hashError,
+              );
+              return { found: false };
+            }
+          })(),
+        ]);
+
+        if (
+          visionResult.status === "fulfilled" &&
+          visionResult.value?.blocked
+        ) {
+          setRegisterState({
+            status: "error",
+            progress: 0,
+            error: visionResult.value.message,
+          });
+          return { success: false, reason: "vision_match_found" } as const;
         }
 
-        // Check hash against remix whitelist
-        try {
-          const hash = await calculateFileHash(file);
-          const hashCheckResponse = await fetch("/api/check-remix-hash", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hash }),
+        if (hashResult.status === "fulfilled" && hashResult.value?.found) {
+          setRegisterState({
+            status: "idle",
+            progress: 0,
+            error: null,
           });
-
-          if (hashCheckResponse.ok) {
-            const hashCheck = await hashCheckResponse.json();
-            if (hashCheck.found) {
-              // Hash found - offer remix instead of blocking
-              setRegisterState({
-                status: "idle",
-                progress: 0,
-                error: null,
-              });
-              return {
-                success: false,
-                reason: "hash_found_offer_remix",
-                matchedIpId: hashCheck.ipId,
-                matchedTitle: hashCheck.title,
-              } as const;
-            }
-          }
-        } catch (hashError) {
-          console.warn("Hash whitelist check failed, continuing:", hashError);
-          // Don't block registration if hash check fails
+          return {
+            success: false,
+            reason: "hash_found_offer_remix",
+            matchedIpId: hashResult.value.ipId,
+            matchedTitle: hashResult.value.title,
+          } as const;
         }
-
-        // ✅ TIER 1 DETECTION COMPLETE
-        // Hash/Vision checks passed - image is allowed to proceed
-        // Now continue to Tier 2: Brand/Character detection
 
         const licenseSettings = getLicenseSettingsByGroup(
           group,
@@ -193,42 +212,42 @@ export function useIPRegistrationAgent() {
           status: "uploading-image",
           progress: 25,
         }));
-        const fileUpload = await uploadFile(compressedFile);
-        const imageCid = extractCid(fileUpload.cid || fileUpload.url);
-        const imageGateway = fileUpload.https || toHttps(imageCid);
-        const imageHash = await sha256HexOfFile(compressedFile);
+
+        const [fileUploadResult, creatorAddr, imageHash] = await Promise.all([
+          uploadFile(compressedFile),
+          (async () => {
+            let addr: string | undefined;
+            try {
+              const providerTmp: any =
+                ethereumProvider || (globalThis as any).ethereum;
+              if (providerTmp) {
+                const walletClientTmp = createWalletClient({
+                  transport: custom(providerTmp),
+                });
+                const addrs = await walletClientTmp.getAddresses();
+                if (addrs && addrs[0]) addr = String(addrs[0]);
+              }
+            } catch {}
+            if (!addr) {
+              throw new Error(
+                "No wallet address available. Please connect your wallet.",
+              );
+            }
+            return addr;
+          })(),
+          sha256HexOfFile(compressedFile),
+        ]);
+
+        const imageCid = extractCid(
+          fileUploadResult.cid || fileUploadResult.url,
+        );
+        const imageGateway = fileUploadResult.https || toHttps(imageCid);
 
         setRegisterState((p) => ({
           ...p,
           status: "creating-metadata",
           progress: 50,
         }));
-        let creatorAddr: string | undefined;
-        try {
-          const providerTmp: any =
-            ethereumProvider || (globalThis as any).ethereum;
-          if (providerTmp) {
-            const walletClientTmp = createWalletClient({
-              transport: custom(providerTmp),
-            });
-            const addrs = await walletClientTmp.getAddresses();
-            if (addrs && addrs[0]) creatorAddr = String(addrs[0]);
-          }
-        } catch {}
-        if (!creatorAddr) {
-          try {
-            const guestPk = (import.meta as any).env?.VITE_GUEST_PRIVATE_KEY;
-            if (guestPk) {
-              const normalized = String(guestPk).startsWith("0x")
-                ? String(guestPk)
-                : `0x${String(guestPk)}`;
-              const guestAccount = privateKeyToAccount(
-                normalized as `0x${string}`,
-              );
-              creatorAddr = guestAccount.address;
-            }
-          } catch {}
-        }
         const ipMetadata = {
           name: intent?.title || file.name,
           title: intent?.title || file.name,
@@ -266,22 +285,109 @@ export function useIPRegistrationAgent() {
           status: "uploading-metadata",
           progress: 60,
         }));
-        const ipMetaUpload = await uploadJSON(ipMetadata);
-        const ipMetaCid = extractCid(ipMetaUpload.cid || ipMetaUpload.url);
-        const ipMetadataURI = toIpfsUri(ipMetaCid);
-        const ipMetadataHash = keccakOfJson(ipMetadata);
 
-        setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
-        // SDK integration pending env/deps (Story Protocol). Guard to avoid silent failure.
-        const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION;
+        const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION_USERS;
         if (!spg)
           throw new Error(
-            "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION)",
+            "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION_USERS)",
           );
         const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC;
         if (!rpcUrl) throw new Error("RPC URL not set (VITE_PUBLIC_STORY_RPC)");
 
-        // Build license terms for Story SDK
+        const [ipMetaUpload, storyClientSetup] = await Promise.all([
+          uploadJSON(ipMetadata),
+          (async () => {
+            const provider = ethereumProvider;
+            let addr: string | undefined;
+            let story: StoryClient;
+            if (provider) {
+              try {
+                const chainIdHex: string = await provider.request({
+                  method: "eth_chainId",
+                });
+                // 0x5ea = 1514 (mainnet), 0x523 = 1315 (aeneid testnet)
+                if (chainIdHex?.toLowerCase() !== "0x5ea") {
+                  try {
+                    await provider.request({
+                      method: "wallet_switchEthereumChain",
+                      params: [{ chainId: "0x5ea" }],
+                    });
+                  } catch (e) {
+                    try {
+                      await provider.request({
+                        method: "wallet_addEthereumChain",
+                        params: [
+                          {
+                            chainId: "0x5ea",
+                            chainName: "Story",
+                            nativeCurrency: {
+                              name: "IP",
+                              symbol: "IP",
+                              decimals: 18,
+                            },
+                            rpcUrls: rpcUrl
+                              ? [rpcUrl]
+                              : ["https://mainnet.storyrpc.io"],
+                          },
+                        ],
+                      });
+                    } catch {}
+                    try {
+                      await provider.request({
+                        method: "wallet_switchEthereumChain",
+                        params: [{ chainId: "0x5ea" }],
+                      });
+                    } catch {}
+                  }
+                }
+              } catch {}
+
+              try {
+                const accounts = await provider.request({
+                  method: "eth_accounts",
+                });
+
+                if (!accounts || accounts.length === 0) {
+                  await provider.request({
+                    method: "eth_requestAccounts",
+                  });
+                }
+              } catch (accountError: any) {
+                throw new Error(
+                  `Failed to connect wallet: ${accountError.message}`,
+                );
+              }
+
+              const walletClient = createWalletClient({
+                transport: custom(provider),
+              });
+              const [a] = await walletClient.getAddresses();
+              if (!a) throw new Error("No wallet address available");
+              addr = a as string;
+
+              // ✅ PERBAIKAN: chainId harus string "mainnet" atau "aeneid"
+              story = StoryClient.newClient({
+                account: addr as `0x${string}`,
+                transport: custom(provider),
+                chainId: "mainnet", // atau "aeneid" untuk testnet
+              });
+            } else {
+              throw new Error(
+                "No wallet connected. Please connect your wallet to register IP.",
+              );
+            }
+            return { addr, story };
+          })(),
+        ]);
+
+        const ipMetaCid = extractCid(ipMetaUpload.cid || ipMetaUpload.url);
+        const ipMetadataURI = toIpfsUri(ipMetaCid);
+        const ipMetadataHash = keccakOfJson(ipMetadata);
+
+        const addr = storyClientSetup.addr;
+        const story = storyClientSetup.story;
+
+        // ✅ PERBAIKAN: licenseTermsData dengan format yang benar
         const licenseTermsData = [
           {
             terms: PILFlavor.commercialRemix({
@@ -291,96 +397,72 @@ export function useIPRegistrationAgent() {
               ),
               currency: WIP_TOKEN_ADDRESS,
             }),
+            // ✅ TAMBAHAN: licensingConfig (opsional tapi recommended)
+            licensingConfig: {
+              isSet: false,
+              mintingFee: 0n,
+              licensingHook: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+              hookData: "0x" as `0x${string}`,
+              commercialRevShare: 0,
+              disabled: false,
+              expectMinimumGroupRewardShare: 0,
+              expectGroupRewardPool: "0x0000000000000000000000000000000000000000" as `0x${string}`,
+            },
           },
         ];
 
-        // Init wallet client via Privy provider if available, otherwise fallback to guest key
-        const provider = ethereumProvider;
-        let addr: string | undefined;
-        let story: any;
-        if (provider) {
-          try {
-            const chainIdHex: string = await provider.request({
-              method: "eth_chainId",
-            });
-            if (chainIdHex?.toLowerCase() !== "0x523") {
-              try {
-                await provider.request({
-                  method: "wallet_switchEthereumChain",
-                  params: [{ chainId: "0x523" }],
-                });
-              } catch (e) {
-                const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC;
-                try {
-                  await provider.request({
-                    method: "wallet_addEthereumChain",
-                    params: [
-                      {
-                        chainId: "0x523",
-                        chainName: "Aeneid",
-                        nativeCurrency: {
-                          name: "IP",
-                          symbol: "IP",
-                          decimals: 18,
-                        },
-                        rpcUrls: rpcUrl
-                          ? [rpcUrl]
-                          : ["https://aeneid.storyrpc.io"],
-                      },
-                    ],
-                  });
-                } catch {}
-                try {
-                  await provider.request({
-                    method: "wallet_switchEthereumChain",
-                    params: [{ chainId: "0x523" }],
-                  });
-                } catch {}
-              }
-            }
-          } catch {}
-          const walletClient = createWalletClient({
-            transport: custom(provider),
-          });
-          const [a] = await walletClient.getAddresses();
-          if (!a) throw new Error("No wallet address available");
-          addr = a as string;
-          story = StoryClient.newClient({
-            account: addr as any,
-            transport: custom(provider),
-            chainId: "aeneid",
-          });
-        } else {
-          const guestPk = (import.meta as any).env?.VITE_GUEST_PRIVATE_KEY;
-          if (!guestPk)
-            throw new Error(
-              "No wallet connected and guest key not configured (VITE_GUEST_PRIVATE_KEY).",
-            );
-          const normalized = String(guestPk).startsWith("0x")
-            ? String(guestPk)
-            : `0x${String(guestPk)}`;
-          const guestAccount = privateKeyToAccount(normalized as `0x${string}`);
-          addr = guestAccount.address;
-          story = StoryClient.newClient({
-            account: guestAccount as any,
-            transport: http(rpcUrl),
-            chainId: "aeneid",
-          });
-        }
+        setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
-        const result: any =
-          await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
+        let result: any;
+        try {
+          console.log("Starting mint and register transaction...", {
+            spgNftContract: spg,
+            recipient: addr,
+          });
+
+          result = await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
             spgNftContract: spg as `0x${string}`,
             recipient: addr as `0x${string}`,
             licenseTermsData,
             ipMetadata: {
               ipMetadataURI,
-              ipMetadataHash: ipMetadataHash as any,
+              ipMetadataHash: ipMetadataHash as `0x${string}`,
               nftMetadataURI: ipMetadataURI,
-              nftMetadataHash: ipMetadataHash as any,
+              nftMetadataHash: ipMetadataHash as `0x${string}`,
             },
             allowDuplicates: true,
           });
+
+          console.log("✅ Mint and register transaction submitted", {
+            ipId: result?.ipId,
+            txHash: result?.txHash || result?.transactionHash,
+            result,
+          });
+
+          setRegisterState((p) => ({ ...p, progress: 90 }));
+        } catch (txError: any) {
+          console.error("❌ Mint and register transaction failed:", {
+            message: txError?.message,
+            code: txError?.code,
+            error: txError,
+          });
+
+          if (
+            txError?.code === 4001 ||
+            txError?.message?.includes("User rejected")
+          ) {
+            throw new Error("Transaction was rejected by the user");
+          }
+          if (txError?.message?.includes("insufficient funds")) {
+            throw new Error("Insufficient funds for gas and transaction");
+          }
+          if (txError?.message?.includes("network")) {
+            throw new Error(
+              "Network error. Please check your connection and try again",
+            );
+          }
+          throw txError;
+        }
 
         setRegisterState({
           status: "success",
@@ -397,10 +479,37 @@ export function useIPRegistrationAgent() {
           ipMetadataUrl: toHttps(ipMetaCid),
         } as const;
       } catch (error: any) {
-        setRegisterState({ status: "error", progress: 0, error });
+        const errorMsg =
+          error?.message || error?.data?.message || String(error);
+
+        let userFriendlyMsg = errorMsg;
+        if (errorMsg.includes("rejected by the user")) {
+          userFriendlyMsg =
+            "❌ You rejected the transaction. Please try again if you want to proceed.";
+        } else if (errorMsg.includes("insufficient funds")) {
+          userFriendlyMsg =
+            "❌ Insufficient funds for gas fees. Please add more IP tokens.";
+        } else if (errorMsg.includes("network")) {
+          userFriendlyMsg =
+            "❌ Network connection error. Please check your connection and try again.";
+        } else if (errorMsg.includes("CallerNotAuthorizedToMint")) {
+          userFriendlyMsg =
+            "❌ Your wallet is not authorized to mint on this contract. Please check with the admin.";
+        }
+
+        console.error("❌ Registration failed:", {
+          message: errorMsg,
+          error,
+          stack: error?.stack,
+        });
+        setRegisterState({
+          status: "error",
+          progress: 0,
+          error: userFriendlyMsg,
+        });
         return {
           success: false,
-          error: error?.message || String(error),
+          error: userFriendlyMsg,
         } as const;
       }
     },
