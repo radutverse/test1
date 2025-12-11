@@ -15,20 +15,22 @@ function getColorFromPrompt(text: string): string {
 // Fetch image from URL and convert to data URL
 async function fetchImageAsDataUrl(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(imageUrl, (response) => {
-      let data = Buffer.alloc(0);
-      response.on("data", (chunk) => {
-        data = Buffer.concat([data, chunk]);
+    https
+      .get(imageUrl, (response) => {
+        let data = Buffer.alloc(0);
+        response.on("data", (chunk) => {
+          data = Buffer.concat([data, chunk]);
+        });
+        response.on("end", () => {
+          const base64 = data.toString("base64");
+          const contentType = response.headers["content-type"] || "image/webp";
+          const dataUrl = `data:${contentType};base64,${base64}`;
+          resolve(dataUrl);
+        });
+      })
+      .on("error", (err) => {
+        reject(err);
       });
-      response.on("end", () => {
-        const base64 = data.toString("base64");
-        const contentType = response.headers["content-type"] || "image/webp";
-        const dataUrl = `data:${contentType};base64,${base64}`;
-        resolve(dataUrl);
-      });
-    }).on("error", (err) => {
-      reject(err);
-    });
   });
 }
 
@@ -36,11 +38,15 @@ async function fetchImageAsDataUrl(imageUrl: string): Promise<string> {
 async function generateDemoSvgImage(prompt: string): Promise<string> {
   try {
     // Fetch the custom image and return as data URL
-    const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+    const customImageUrl =
+      "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
     const dataUrl = await fetchImageAsDataUrl(customImageUrl);
     return dataUrl;
   } catch (error) {
-    console.warn("Failed to fetch custom image, falling back to default", error);
+    console.warn(
+      "Failed to fetch custom image, falling back to default",
+      error,
+    );
     // Fallback - generate colored background
     const color = getColorFromPrompt(prompt);
     const svg = `
@@ -122,7 +128,8 @@ export const demoGenerateImage: RequestHandler = async (req, res) => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Return custom image directly as data URL
-    const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+    const customImageUrl =
+      "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
 
     try {
       const imageUrl = await fetchImageAsDataUrl(customImageUrl);
@@ -161,7 +168,8 @@ export const demoEditImage: RequestHandler = async (req, res) => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Return custom image directly as data URL
-    const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+    const customImageUrl =
+      "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
 
     try {
       const imageUrl = await fetchImageAsDataUrl(customImageUrl);

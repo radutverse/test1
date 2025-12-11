@@ -8,20 +8,22 @@ const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 // Fetch image from URL and convert to data URL
 async function fetchImageAsDataUrl(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    https.get(imageUrl, (response) => {
-      let data = Buffer.alloc(0);
-      response.on("data", (chunk) => {
-        data = Buffer.concat([data, chunk]);
+    https
+      .get(imageUrl, (response) => {
+        let data = Buffer.alloc(0);
+        response.on("data", (chunk) => {
+          data = Buffer.concat([data, chunk]);
+        });
+        response.on("end", () => {
+          const base64 = data.toString("base64");
+          const contentType = response.headers["content-type"] || "image/webp";
+          const dataUrl = `data:${contentType};base64,${base64}`;
+          resolve(dataUrl);
+        });
+      })
+      .on("error", (err) => {
+        reject(err);
       });
-      response.on("end", () => {
-        const base64 = data.toString("base64");
-        const contentType = response.headers["content-type"] || "image/webp";
-        const dataUrl = `data:${contentType};base64,${base64}`;
-        resolve(dataUrl);
-      });
-    }).on("error", (err) => {
-      reject(err);
-    });
   });
 }
 
@@ -144,11 +146,15 @@ export const unifiedGenerateImage: RequestHandler = async (req, res) => {
       // Demo mode: return custom image
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate delay
       try {
-        const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+        const customImageUrl =
+          "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
         imageUrl = await fetchImageAsDataUrl(customImageUrl);
         console.log("✅ Demo image generated successfully");
       } catch (error) {
-        console.warn("Failed to fetch custom image, falling back to SVG", error);
+        console.warn(
+          "Failed to fetch custom image, falling back to SVG",
+          error,
+        );
         const svgString = generateDemoSvgImage(prompt);
         const base64 = Buffer.from(svgString).toString("base64");
         imageUrl = `data:image/svg+xml;base64,${base64}`;
@@ -208,11 +214,15 @@ export const unifiedEditImage: RequestHandler = async (req, res) => {
       console.log("📸 Processing demo image edit");
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate delay
       try {
-        const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+        const customImageUrl =
+          "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
         imageUrl = await fetchImageAsDataUrl(customImageUrl);
         console.log("✅ Demo image edited successfully");
       } catch (error) {
-        console.warn("Failed to fetch custom image, falling back to SVG", error);
+        console.warn(
+          "Failed to fetch custom image, falling back to SVG",
+          error,
+        );
         const svgString = generateDemoSvgImage(prompt);
         const base64 = Buffer.from(svgString).toString("base64");
         imageUrl = `data:image/svg+xml;base64,${base64}`;
@@ -309,11 +319,15 @@ export const unifiedGenerateImageWithWatermark: RequestHandler = async (
       // Demo mode: return custom image
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate delay
       try {
-        const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+        const customImageUrl =
+          "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
         imageUrl = await fetchImageAsDataUrl(customImageUrl);
         console.log("✅ Demo image generated successfully");
       } catch (error) {
-        console.warn("Failed to fetch custom image, falling back to SVG", error);
+        console.warn(
+          "Failed to fetch custom image, falling back to SVG",
+          error,
+        );
         const svgString = generateDemoSvgImage(prompt);
         const base64 = Buffer.from(svgString).toString("base64");
         imageUrl = `data:image/svg+xml;base64,${base64}`;
