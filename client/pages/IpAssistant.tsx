@@ -2033,7 +2033,9 @@ const IpAssistant = () => {
             if (msg.from === "smart-licensing") {
               const licensingMsg = msg as any;
               const ctxKey = licensingMsg.ctxKey as string | undefined;
-              const ctx = ctxKey ? analysisContextsRef.current.get(ctxKey) : null;
+              const ctx = ctxKey
+                ? analysisContextsRef.current.get(ctxKey)
+                : null;
               const imageUrl = ctx?.blob
                 ? URL.createObjectURL(ctx.blob)
                 : undefined;
@@ -2071,8 +2073,7 @@ const IpAssistant = () => {
                       let ethProvider: any = (window as any).ethereum;
                       try {
                         if (wallets && wallets[0]?.getEthereumProvider) {
-                          ethProvider =
-                            await wallets[0].getEthereumProvider();
+                          ethProvider = await wallets[0].getEthereumProvider();
                         }
                       } catch {}
 
@@ -2082,7 +2083,10 @@ const IpAssistant = () => {
                         config.mintingFee,
                         config.revShare,
                         config.aiTraining,
-                        { title: licensingMsg.title, prompt: licensingMsg.description },
+                        {
+                          title: licensingMsg.title,
+                          prompt: licensingMsg.description,
+                        },
                         ethProvider,
                         config.licenseType,
                       );

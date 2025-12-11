@@ -23,30 +23,48 @@ interface SmartLicensingFormProps {
 /**
  * Get human-friendly explanation for why a license type is recommended
  */
-function getLicenseRecommendationReason(group: number, licenseType: string): string {
+function getLicenseRecommendationReason(
+  group: number,
+  licenseType: string,
+): string {
   switch (licenseType) {
     case "commercial-remix":
-      if (group === 1) return "Clean AI-generated image with no faces or brands - safe for maximum monetization";
-      if (group === 12) return "AI animation without brand/character - can leverage full commercial potential";
-      if (group === 16) return "Clean photograph without faces or brands - ideal for commercial use and derivatives";
+      if (group === 1)
+        return "Clean AI-generated image with no faces or brands - safe for maximum monetization";
+      if (group === 12)
+        return "AI animation without brand/character - can leverage full commercial potential";
+      if (group === 16)
+        return "Clean photograph without faces or brands - ideal for commercial use and derivatives";
       return "This content is suitable for commercial remixing with revenue sharing";
 
     case "commercial-use":
-      if (group === 4) return "Famous person with partial face visibility - requires controlled commercial access";
-      if (group === 8) return "Famous person in photograph - controlled commercial use without derivatives";
-      if (group === 9) return "Famous person partial visibility - limits commercial remixing for privacy protection";
+      if (group === 4)
+        return "Famous person with partial face visibility - requires controlled commercial access";
+      if (group === 8)
+        return "Famous person in photograph - controlled commercial use without derivatives";
+      if (group === 9)
+        return "Famous person partial visibility - limits commercial remixing for privacy protection";
       return "Commercial use allowed but derivatives are restricted";
 
     case "non-commercial-social-remixing":
-      if (group === 2) return "AI image with brand/character - free remixing to respect IP rights";
-      if (group === 3) return "AI image of famous person - free remixing to respect publicity rights";
-      if (group === 5) return "Regular person full face - requires manual review but suitable for social remixing";
-      if (group === 6) return "Regular person partial face - protects individual privacy while allowing remixes";
-      if (group === 7) return "Photo with brand/character - free remixing to respect IP and brand rights";
-      if (group === 10) return "Regular person in photograph - requires consent but allows free remixing";
-      if (group === 11) return "Regular person partial face - balances privacy with remix potential";
-      if (group === 14) return "Non-AI animation - free remixing appropriate for traditional content";
-      if (group === 15) return "Content with restrictions - free social remixing is most appropriate";
+      if (group === 2)
+        return "AI image with brand/character - free remixing to respect IP rights";
+      if (group === 3)
+        return "AI image of famous person - free remixing to respect publicity rights";
+      if (group === 5)
+        return "Regular person full face - requires manual review but suitable for social remixing";
+      if (group === 6)
+        return "Regular person partial face - protects individual privacy while allowing remixes";
+      if (group === 7)
+        return "Photo with brand/character - free remixing to respect IP and brand rights";
+      if (group === 10)
+        return "Regular person in photograph - requires consent but allows free remixing";
+      if (group === 11)
+        return "Regular person partial face - balances privacy with remix potential";
+      if (group === 14)
+        return "Non-AI animation - free remixing appropriate for traditional content";
+      if (group === 15)
+        return "Content with restrictions - free social remixing is most appropriate";
       return "This content is best suited for free, non-commercial remixing";
 
     default:
@@ -75,8 +93,9 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   );
 
   // State for license selection and form inputs
-  const [selectedLicenseType, setSelectedLicenseType] =
-    useState<string>(recommendedLicenseType);
+  const [selectedLicenseType, setSelectedLicenseType] = useState<string>(
+    recommendedLicenseType,
+  );
   const [mintingFee, setMintingFee] = useState<string>("");
   const [revShare, setRevShare] = useState<string>("");
   const [aiTraining, setAiTraining] = useState(true);
@@ -85,10 +104,12 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   const selectedLicenseInfo = LICENSE_TYPES[selectedLicenseType];
 
   // Get all available license types
-  const availableLicenses = Object.entries(LICENSE_TYPES).map(([key, value]) => ({
-    key,
-    ...value,
-  }));
+  const availableLicenses = Object.entries(LICENSE_TYPES).map(
+    ([key, value]) => ({
+      key,
+      ...value,
+    }),
+  );
 
   const handleRegister = () => {
     onRegister({
@@ -185,7 +206,8 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
           {/* Recommendation Reason */}
           <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
             <p className="text-xs text-blue-200">
-              <span className="font-semibold">Why this license?</span> {recommendationReason}
+              <span className="font-semibold">Why this license?</span>{" "}
+              {recommendationReason}
             </p>
           </div>
         </div>
