@@ -68,7 +68,8 @@ export function useIPRegistrationAgent() {
 
         // Compress image
         setRegisterState({ status: "compressing", progress: 10, error: null });
-        const compressedFile = await compressImage(file);
+        const compressedBlob = await compressAndEnsureSize(file, 1024 * 1024);
+        const compressedFile = new File([compressedBlob], file.name, { type: "image/jpeg" });
 
         // Upload image
         setRegisterState((p) => ({ ...p, status: "uploading-image", progress: 25 }));
