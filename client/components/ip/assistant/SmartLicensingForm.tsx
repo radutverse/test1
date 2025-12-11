@@ -331,7 +331,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             onChange={(e) => setMintingFee(e.target.value)}
             disabled={isLoading}
             placeholder="0"
-            className={`w-full px-3 py-2 bg-slate-900/60 border border-white/20 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all ${
+            className={`w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all ${
               isLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />
