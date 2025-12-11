@@ -146,7 +146,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   // Success State
   if (isSuccess && registerState.ipId) {
     return (
-      <div className="bg-gradient-to-b from-emerald-900/40 to-emerald-950/30 rounded-2xl border border-emerald-500/40 p-6 backdrop-blur-sm max-w-2xl mx-auto">
+      <div className="bg-gradient-to-b from-emerald-900/40 to-emerald-950/30 rounded-2xl border border-emerald-500/40 p-6 backdrop-blur-sm max-w-2xl">
         <div className="flex flex-col items-center text-center gap-4">
           <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center">
             <Check size={32} className="text-emerald-400" />
@@ -199,7 +199,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
   return (
     <div
-      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl mx-auto transition-opacity ${isLoading ? "opacity-75" : ""}`}
+      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl transition-opacity ${isLoading ? "opacity-75" : ""}`}
     >
       {/* Header */}
       <div className="mb-6">
