@@ -1696,11 +1696,6 @@ const IpAssistant = () => {
                           onClick={async () => {
                             if (msg.action?.disabled) return;
                             try {
-                              // Add image to remix whitelist
-                              const hash = await calculateBlobHash(
-                                msg.action.imageBlob,
-                              );
-
                               // Load image to preview with remix mode
                               const imageName = msg.action.imageName;
                               setPreviewImages({
