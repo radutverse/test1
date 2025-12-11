@@ -255,9 +255,9 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
 
     case "Uncertain":
     default:
-      // Fallback: If the AI is uncertain, treat it with the caution of an AI image.
+      // Fallback: If classification is uncertain, cannot be registered
       return {
-        group: 1,
+        group: 15,
         type: "Uncertain Origin",
         classification: "Requires manual review",
       };
