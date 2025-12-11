@@ -2,7 +2,6 @@ import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
 import { createWalletClient, custom, parseEther, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 import { keccakOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
 
@@ -10,19 +9,18 @@ import { Address } from "viem";
 const OFFCHAIN_LICENSE_TERMS_URI =
   "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/NCSR.json";
 
-// --- INTERFACE YANG LEBIH AKURAT ---
-
+// --- INTERFACE ---
 interface ParentLicense {
   licenseTermsId: string;
   terms?: {
     commercialUse: boolean;
-    commercialRevShare: number; // Nilai terskala (misal, 5000000 untuk 5%)
+    commercialRevShare: number;
     [key: string]: any;
   };
 }
 
 interface ParentAsset {
-  ipId: Address; // Menggunakan tipe Address dari viem
+  ipId: Address;
   title?: string;
   licenses?: ParentLicense[];
 }
@@ -31,7 +29,6 @@ interface LicensingFormProps {
   imageUrl: string;
   imageName?: string;
   type: "image" | "video";
-  guestMode?: boolean;
   isLoading?: boolean;
   onClose?: () => void;
   parentAsset?: ParentAsset;
@@ -44,13 +41,11 @@ interface LicensingFormProps {
 }
 
 // --- KOMPONEN UTAMA ---
-
 const LicensingFormComponent = (
   {
     imageUrl,
     imageName = "generated-image.png",
     type,
-    guestMode = false,
     isLoading = false,
     onClose,
     parentAsset,
@@ -89,13 +84,10 @@ const LicensingFormComponent = (
     : undefined;
 
   const parentRevShareScaled = parentLicense?.terms?.commercialRevShare ?? 0;
-  // Nilai untuk tampilan (0-100)
   const parentRevSharePercentage = Number(parentRevShareScaled) / 1000000;
 
-  // --- FUNGSI UTAMA ---
-
+  // --- FUNGSI KONVERSI IMAGE ---
   const handleConvertImageToFile = async (): Promise<File> => {
-    // ... (Logika konversi dipertahankan karena sudah benar)
     if (!imageUrl) {
       throw new Error("No image URL available");
     }
@@ -126,15 +118,16 @@ const LicensingFormComponent = (
     });
   };
 
+  // --- FUNGSI REGISTER (WALLET ONLY) ---
   const handleRegister = async () => {
-    // --- 1. PRE-CHECK VALIDASI ---
+    // Validasi
     if (!imageUrl) return setRegisterError("No image to register");
     if (!isPaidRemix || !parentAsset)
       return setRegisterError("Parent asset data required for licensing");
     if (!parentLicense)
       return setRegisterError("No commercial license found on parent IP");
-    if (!guestMode && !authenticated)
-      return setRegisterError("Please connect wallet or enable guest mode");
+    if (!authenticated)
+      return setRegisterError("Please connect your wallet first");
 
     setIsRegistering(true);
     setRegisterError(null);
@@ -144,89 +137,55 @@ const LicensingFormComponent = (
     let childIpId: Address | undefined;
 
     try {
-      // --- 2. SETUP WALLET & CLIENT ---
-      let ethProvider: any = undefined;
-      if (!guestMode && wallets && wallets[0]?.getEthereumProvider) {
-        try {
-          ethProvider = await wallets[0].getEthereumProvider();
-        } catch (err) {
-          console.warn("Failed to get ethereum provider:", err);
-        }
+      // --- SETUP WALLET & CLIENT (WALLET MODE ONLY) ---
+      if (!wallets || !wallets[0]?.getEthereumProvider) {
+        throw new Error("No wallet connected");
       }
 
-      if (ethProvider) {
-        try {
-          // Ensure wallet is connected and has accounts
-          try {
-            const accounts = await ethProvider.request({
-              method: "eth_accounts",
-            });
+      const ethProvider = await wallets[0].getEthereumProvider();
 
-            if (!accounts || accounts.length === 0) {
-              // Request account access if not connected
-              await ethProvider.request({
-                method: "eth_requestAccounts",
-              });
-            }
-          } catch (accountError: any) {
-            console.error(`Failed to connect wallet: ${accountError.message}`);
-            throw accountError;
-          }
+      // Ensure wallet is connected
+      try {
+        const accounts = await ethProvider.request({
+          method: "eth_accounts",
+        });
 
-          const walletClient = createWalletClient({
-            transport: custom(ethProvider),
+        if (!accounts || accounts.length === 0) {
+          await ethProvider.request({
+            method: "eth_requestAccounts",
           });
-          const [a] = await walletClient.getAddresses();
-          if (a) addr = a;
-        } catch (walletError: any) {
-          console.warn("Failed to get wallet address:", walletError);
         }
+      } catch (accountError: any) {
+        console.error(`Failed to connect wallet: ${accountError.message}`);
+        throw accountError;
       }
 
-      if (!addr) {
-        try {
-          const guestPk = (import.meta as any).env?.VITE_GUEST_PRIVATE_KEY;
-          if (guestPk) {
-            const normalized = String(guestPk).startsWith("0x")
-              ? String(guestPk)
-              : `0x${String(guestPk)}`;
-            const guestAccount = privateKeyToAccount(
-              normalized as `0x${string}`,
-            );
-            addr = guestAccount.address;
-          }
-        } catch {}
+      const walletClient = createWalletClient({
+        transport: custom(ethProvider),
+      });
+      const [walletAddress] = await walletClient.getAddresses();
+      
+      if (!walletAddress) {
+        throw new Error("Could not get wallet address");
+      }
+      
+      addr = walletAddress;
+
+      // Initialize Story Client dengan wallet
+      const storyClient = StoryClient.newClient({
+        account: addr,
+        transport: custom(ethProvider),
+        chainId: 1514,
+      });
+
+      // Gunakan SPG Collection yang sama (seperti guest sebelumnya)
+      const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION;
+      if (!spg) {
+        throw new Error("SPG collection not configured (VITE_PUBLIC_SPG_COLLECTION)");
       }
 
-      if (!addr) throw new Error("Could not determine wallet address");
-
-      const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC;
-      if (!rpcUrl) throw new Error("RPC URL not set");
-
-      let storyClient: StoryClient;
-      if (ethProvider) {
-        storyClient = StoryClient.newClient({
-          account: addr,
-          transport: custom(ethProvider),
-          chainId: 1514,
-        });
-      } else {
-        const guestPk = (import.meta as any).env?.VITE_GUEST_PRIVATE_KEY;
-        if (!guestPk) throw new Error("Guest key not configured");
-        const normalized = String(guestPk).startsWith("0x")
-          ? String(guestPk)
-          : `0x${String(guestPk)}`;
-        const guestAccount = privateKeyToAccount(normalized as `0x${string}`);
-        storyClient = StoryClient.newClient({
-          account: guestAccount,
-          transport: http(rpcUrl),
-          chainId: 1514,
-        });
-      }
-
+      // Convert & Upload Image
       const file = await handleConvertImageToFile();
-
-      // Upload image to IPFS
       const formData = new FormData();
       formData.append("file", file);
       const uploadRes = await fetch("/api/ipfs/upload", {
@@ -237,19 +196,10 @@ const LicensingFormComponent = (
       if (!uploadRes.ok) throw new Error("Failed to upload image to IPFS");
       const { url: imageUri } = await uploadRes.json();
 
-      // Use different SPG contracts based on auth method
-      const spg = ethProvider
-        ? (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION_USERS // For wallet users
-        : (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION; // For guest
-      if (!spg)
-        throw new Error(
-          `SPG collection not configured. Expected: ${ethProvider ? "VITE_PUBLIC_SPG_COLLECTION_USERS" : "VITE_PUBLIC_SPG_COLLECTION"}`,
-        );
-
+      // Prepare metadata
       const ipMetadataObj = {
         title: title || "AI Generated Image",
-        description:
-          description || "Created using AI image generation technology",
+        description: description || "Created using AI image generation technology",
         ipType: "Image",
         createdAt: new Date().toISOString(),
         mediaUrl: imageUri,
@@ -257,8 +207,7 @@ const LicensingFormComponent = (
 
       const nftMetadataObj = {
         title: title || "AI Generated Image",
-        description:
-          description || "Created using AI image generation technology",
+        description: description || "Created using AI image generation technology",
         image: imageUri,
         attributes: [
           { trait_type: "Type", value: "AI Generated Derivative" },
@@ -269,7 +218,7 @@ const LicensingFormComponent = (
       const ipMetadataHash = keccakOfJson(ipMetadataObj);
       const nftMetadataHash = keccakOfJson(nftMetadataObj);
 
-      // Upload IP metadata JSON to IPFS
+      // Upload IP metadata
       const ipMetadataFormData = new FormData();
       ipMetadataFormData.append(
         "file",
@@ -285,13 +234,11 @@ const LicensingFormComponent = (
         throw new Error("Failed to upload IP metadata to IPFS");
       const { url: ipMetadataUri } = await ipMetadataUploadRes.json();
 
-      // Upload NFT metadata JSON to IPFS
+      // Upload NFT metadata
       const nftMetadataFormData = new FormData();
       nftMetadataFormData.append(
         "file",
-        new Blob([JSON.stringify(nftMetadataObj)], {
-          type: "application/json",
-        }),
+        new Blob([JSON.stringify(nftMetadataObj)], { type: "application/json" }),
         "nft-metadata.json",
       );
       const nftMetadataUploadRes = await fetch("/api/ipfs/upload", {
@@ -304,7 +251,7 @@ const LicensingFormComponent = (
       const { url: nftMetadataUri } = await nftMetadataUploadRes.json();
 
       // ========================================
-      // STEP 1: REGISTER DERIVATIVE IP ASSET (Combined operation)
+      // STEP 1: REGISTER DERIVATIVE IP ASSET
       // ========================================
       console.log("📝 Step 1: Registering derivative IP asset...");
       setCurrentStep("registering-derivative");
@@ -341,20 +288,15 @@ const LicensingFormComponent = (
         const errorMsg = registerError?.message || String(registerError);
         console.error("❌ Register derivative error:", errorMsg);
 
-        // Check if user rejected the transaction
-        if (
-          registerError?.code === 4001 ||
-          errorMsg.includes("User rejected")
-        ) {
+        if (registerError?.code === 4001 || errorMsg.includes("User rejected")) {
           throw new Error("Transaction was rejected by the user");
         }
-        // Check for other common wallet errors
         if (errorMsg.includes("insufficient funds")) {
           throw new Error("Insufficient funds for gas and transaction");
         }
         if (errorMsg.includes("CallerNotAuthorizedToMint")) {
           throw new Error(
-            "Your wallet is not authorized to mint on this contract",
+            "Your wallet is not authorized to mint on this contract. Please contact admin to whitelist your address."
           );
         }
 
@@ -382,10 +324,7 @@ const LicensingFormComponent = (
           royaltyPolicies: [],
         });
 
-        console.log(
-          "✅ Parent claimed revenue:",
-          revenueResponse.claimedTokens,
-        );
+        console.log("✅ Parent claimed revenue:", revenueResponse.claimedTokens);
       } catch (revenueError: any) {
         console.warn(
           "⚠️ Revenue claiming encountered an issue (non-critical):",
@@ -398,9 +337,7 @@ const LicensingFormComponent = (
       setRegisteredIpId(childIpId || "pending");
       setRegisterSuccess(true);
       setSuccessMessage(
-        guestMode
-          ? `✅ Derivative registered! Child IP: ${childIpId}`
-          : `✅ Derivative registered with ${parentRevSharePercentage.toFixed(2)}% revenue share. Child IP: ${childIpId}`,
+        `✅ Derivative registered with ${parentRevSharePercentage.toFixed(2)}% revenue share. Child IP: ${childIpId}`
       );
 
       if (onRegisterComplete) {
@@ -412,7 +349,6 @@ const LicensingFormComponent = (
     } catch (error: any) {
       const errorMsg = error?.message || error?.data?.message || String(error);
 
-      // Provide user-friendly error messages
       let userFriendlyMsg = errorMsg;
       if (errorMsg.includes("rejected by the user")) {
         userFriendlyMsg =
@@ -425,7 +361,7 @@ const LicensingFormComponent = (
           "❌ Network connection error. Please check your connection and try again.";
       } else if (errorMsg.includes("CallerNotAuthorizedToMint")) {
         userFriendlyMsg =
-          "❌ Your wallet is not authorized to mint on this contract. Please check with the admin.";
+          "❌ Your wallet is not authorized to mint on this contract. Please contact admin to whitelist your address.";
       } else if (errorMsg.includes("Failed to register")) {
         userFriendlyMsg = `❌ Registration failed. Please try again. (${errorMsg.substring(0, 50)}...)`;
       }
@@ -436,14 +372,13 @@ const LicensingFormComponent = (
         error,
         stack: error?.stack,
       });
-      // Set step kembali ke idle setelah error agar user bisa mencoba lagi
       setCurrentStep("idle");
     } finally {
       setIsRegistering(false);
     }
   };
 
-  // --- RENDERING (UI dipertahankan karena sudah baik) ---
+  // --- RENDERING UI ---
   return (
     <div className="w-full h-full p-6 space-y-4 flex flex-col">
       {/* Success Message */}
@@ -600,7 +535,7 @@ const LicensingFormComponent = (
           />
         </div>
 
-        {/* Revenue Share - Read-only, follows parent */}
+        {/* Revenue Share - Read-only */}
         {isPaidRemix && (
           <div className="space-y-2">
             <label className="text-sm text-slate-400 font-medium">
@@ -643,16 +578,10 @@ const LicensingFormComponent = (
           </div>
         )}
 
-        {/* Auth Status */}
-        {!guestMode && !authenticated && (
+        {/* Auth Status - Wallet Required */}
+        {!authenticated && (
           <div className="rounded-lg px-3 py-2.5 bg-amber-500/10 border border-amber-500/30 text-sm text-amber-400">
             ⚠️ Connect wallet to register
-          </div>
-        )}
-
-        {guestMode && (
-          <div className="rounded-lg px-3 py-2.5 bg-slate-600/20 border border-slate-600/40 text-sm text-slate-400">
-            🎭 Guest mode enabled
           </div>
         )}
       </div>
@@ -700,7 +629,7 @@ const LicensingFormComponent = (
             disabled={
               isRegistering ||
               currentStep !== "idle" ||
-              (!guestMode && !authenticated) ||
+              !authenticated ||
               isLoading ||
               !imageUrl ||
               !isPaidRemix
