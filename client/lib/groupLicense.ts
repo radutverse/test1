@@ -1,8 +1,10 @@
 import {
   LicenseSettings,
-  DEFAULT_LICENSE_SETTINGS,
   getLicenseSettingsByType,
+  toLicenseTerms,
 } from "@/lib/license/terms";
+import { determineLicenseTypeByGroup } from "@/lib/license/license-types";
+import { LicenseTerms } from "@story-protocol/core-sdk";
 
 export const GROUPS = {
   SELFIE_REQUIRED: [5, 10],
@@ -10,17 +12,6 @@ export const GROUPS = {
   DIRECT_REGISTER_FIXED_AI: [1, 4, 6, 12],
   DIRECT_REGISTER_MANUAL_AI: [9, 11, 14],
 };
-
-// Mapping grup ke license type
-function determineLicenseTypeByGroup(group: number): string {
-  if (GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group)) {
-    return "commercial-remix";
-  }
-  if (GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)) {
-    return "commercial-remix";
-  }
-  return "non-commercial-social-remixing";
-}
 
 export function getLicenseSettingsByGroup(
   group: number,
@@ -35,32 +26,27 @@ export function getLicenseSettingsByGroup(
     const licenseType = determineLicenseTypeByGroup(group);
     return getLicenseSettingsByType(
       licenseType,
-      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)
-        ? (aiTrainingManual ?? true)
-        : false,
+      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group) ? (aiTrainingManual ?? true) : false,
       mintingFee,
       revShare
     );
   }
-
-  if (
-    GROUPS.SELFIE_REQUIRED.includes(group) ||
-    GROUPS.SUBMIT_REVIEW.includes(group)
-  ) {
-    return null;
-  }
-
   return null;
 }
 
-export function requiresSelfieVerification(group: number) {
-  return GROUPS.SELFIE_REQUIRED.includes(group);
+// Langsung dapatkan LicenseTerms on-chain dari grup
+export function getLicenseTermsByGroup(
+  group: number,
+  aiTrainingManual?: boolean,
+  mintingFee?: number,
+  revShare?: number
+): LicenseTerms | null {
+  const settings = getLicenseSettingsByGroup(group, aiTrainingManual, mintingFee, revShare);
+  return settings ? toLicenseTerms(settings) : null;
 }
 
-export function requiresSubmitReview(group: number) {
-  return GROUPS.SUBMIT_REVIEW.includes(group);
-}
-
-export function isAiGeneratedGroup(group: number) {
-  return [1, 2, 3, 4, 5, 6, 12, 13].includes(group);
-}
+export const requiresSelfieVerification = (group: number) => GROUPS.SELFIE_REQUIRED.includes(group);
+export const requiresSubmitReview = (group: number) => GROUPS.SUBMIT_REVIEW.includes(group);
+export const isAiGeneratedGroup = (group: number) => [1, 2, 3, 4, 5, 6, 12, 13].includes(group);
+export const canDirectRegister = (group: number) =>
+  GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) || GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group);
