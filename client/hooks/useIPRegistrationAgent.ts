@@ -216,16 +216,34 @@ export function useIPRegistrationAgent() {
           throw new Error("RPC URL not set (VITE_PUBLIC_STORY_RPC)");
         }
 
-        // Build license terms for Story SDK
+        // Build license terms for Story SDK based on license type
+        let licenseTerms: any;
+
+        if (licenseSettings.pilType === "non_commercial_social_remix") {
+          // Non-Commercial Social Remixing: licenseTermsId = 1 (pre-registered)
+          licenseTerms = PILFlavor.nonCommercialSocialRemixing();
+        } else if (licenseSettings.pilType === "commercial_use") {
+          // Commercial Use: requires minting fee, no derivatives
+          licenseTerms = PILFlavor.commercialUse({
+            defaultMintingFee: parseEther(
+              String(licenseSettings.licensePrice || 0),
+            ),
+            currency: WIP_TOKEN_ADDRESS,
+          });
+        } else {
+          // Commercial Remix: default with revenue share
+          licenseTerms = PILFlavor.commercialRemix({
+            commercialRevShare: Number(licenseSettings.revShare) || 0,
+            defaultMintingFee: parseEther(
+              String(licenseSettings.licensePrice || 0),
+            ),
+            currency: WIP_TOKEN_ADDRESS,
+          });
+        }
+
         const licenseTermsData = [
           {
-            terms: PILFlavor.commercialRemix({
-              commercialRevShare: Number(licenseSettings.revShare) || 0,
-              defaultMintingFee: parseEther(
-                String(licenseSettings.licensePrice || 0),
-              ),
-              currency: WIP_TOKEN_ADDRESS,
-            }),
+            terms: licenseTerms,
           },
         ];
 
