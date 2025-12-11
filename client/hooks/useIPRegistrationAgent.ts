@@ -12,8 +12,9 @@ import {
   StoryClient,
   PILFlavor,
   WIP_TOKEN_ADDRESS,
+  LicenseTerms,
 } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther } from "viem";
+import { createWalletClient, custom, parseEther, zeroAddress } from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
@@ -387,17 +388,30 @@ export function useIPRegistrationAgent() {
         const addr = storyClientSetup.addr;
         const story = storyClientSetup.story;
 
-        // Commercial Remix license terms with proper Story SDK structure
+        // Commercial Remix license terms with full PIL Terms structure
         const licenseTermsData = [
           {
-            terms: PILFlavor.commercialRemix({
+            terms: {
+              transferable: false,
+              royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",
               defaultMintingFee: parseEther(
                 String(licenseSettings.licensePrice || 0),
               ),
+              expiration: 0n,
+              commercialUse: true,
+              commercialAttribution: true,
+              commercializerChecker: zeroAddress,
+              commercializerCheckerData: "0x",
               commercialRevShare: Number(licenseSettings.revShare) || 0,
+              commercialRevCeiling: 0n,
+              derivativesAllowed: true,
+              derivativesAttribution: true,
+              derivativesApproval: false,
+              derivativesReciprocal: true,
+              derivativeRevCeiling: 999999999n,
               currency: WIP_TOKEN_ADDRESS,
-              royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",
-            }),
+              uri: "",
+            } as LicenseTerms,
           },
         ];
 
