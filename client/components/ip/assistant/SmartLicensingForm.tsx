@@ -366,7 +366,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       <div className="mb-6">
         <label
           className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg transition-all ${
-            isLoading
+            isLoading || isAiGeneratedGroup(group)
               ? "opacity-50 cursor-not-allowed"
               : "cursor-pointer hover:bg-slate-800/30"
           }`}
@@ -375,14 +375,21 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             type="checkbox"
             checked={aiTraining}
             onChange={(e) => setAiTraining(e.target.checked)}
-            disabled={isLoading}
+            disabled={isLoading || isAiGeneratedGroup(group)}
             className={`w-5 h-5 rounded border-slate-600 bg-slate-900/60 accent-pink-500 ${
-              isLoading ? "cursor-not-allowed" : "cursor-pointer"
+              isLoading || isAiGeneratedGroup(group) ? "cursor-not-allowed" : "cursor-pointer"
             }`}
           />
-          <span className="text-sm font-semibold text-slate-200">
-            Allow AI Training
-          </span>
+          <div className="flex-1">
+            <span className="text-sm font-semibold text-slate-200">
+              Allow AI Training
+            </span>
+            {isAiGeneratedGroup(group) && (
+              <p className="text-xs text-slate-400 mt-1">
+                Disabled for AI-generated content to protect creator rights
+              </p>
+            )}
+          </div>
         </label>
       </div>
 
