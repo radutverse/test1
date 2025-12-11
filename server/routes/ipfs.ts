@@ -13,7 +13,10 @@ const PINATA_GATEWAY = process.env.PINATA_GATEWAY; // e.g. mysubdomain.mypinata.
 async function pinFileToPinata(name: string, buffer: Buffer, mimetype: string) {
   if (!PINATA_JWT) throw new Error("PINATA_JWT not set");
   const form = new FormData();
-  form.append("file", buffer, { filename: name || "file", contentType: mimetype || "application/octet-stream" });
+  form.append("file", buffer, {
+    filename: name || "file",
+    contentType: mimetype || "application/octet-stream",
+  });
 
   const options = {
     method: "POST" as const,
@@ -25,8 +28,12 @@ async function pinFileToPinata(name: string, buffer: Buffer, mimetype: string) {
   };
 
   try {
-    const response = await axios("https://api.pinata.cloud/pinning/pinFileToIPFS", options);
-    const cid: string = response.data?.IpfsHash || response.data?.Hash || response.data?.cid;
+    const response = await axios(
+      "https://api.pinata.cloud/pinning/pinFileToIPFS",
+      options,
+    );
+    const cid: string =
+      response.data?.IpfsHash || response.data?.Hash || response.data?.cid;
     if (!cid) throw new Error("cid_missing");
     return cid;
   } catch (error) {
@@ -53,7 +60,8 @@ async function pinJsonToPinata(json: unknown) {
 
   try {
     const response = await axios(url, options);
-    const cid: string = response.data?.IpfsHash || response.data?.Hash || response.data?.cid;
+    const cid: string =
+      response.data?.IpfsHash || response.data?.Hash || response.data?.cid;
     if (!cid) throw new Error("cid_missing");
     return cid;
   } catch (error) {
