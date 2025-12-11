@@ -11,6 +11,13 @@ export async function sha256HexOfFile(file: Blob): Promise<string> {
   return `0x${toHex(hash)}`;
 }
 
+export async function sha256HexOfJson(data: unknown): Promise<string> {
+  const str = typeof data === "string" ? data : JSON.stringify(data);
+  const buf = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return `0x${toHex(hash)}`;
+}
+
 // Minimal keccak256 implementation (public domain) adapted for small inputs
 // Reference: https://github.com/emn178/js-sha3 (trimmed keccak256)
 export function keccak256Hex(data: Uint8Array): string {
