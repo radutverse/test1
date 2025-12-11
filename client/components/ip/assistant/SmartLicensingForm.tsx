@@ -128,8 +128,66 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
     });
   };
 
+  const isLoading = registerState.status !== "idle" && registerState.status !== "success" && registerState.status !== "error";
+  const isSuccess = registerState.status === "success";
+  const isError = registerState.status === "error";
+
+  // Success State
+  if (isSuccess && registerState.ipId) {
+    return (
+      <div className="bg-gradient-to-b from-emerald-900/40 to-emerald-950/30 rounded-2xl border border-emerald-500/40 p-6 backdrop-blur-sm max-w-2xl mx-auto">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center">
+            <Check size={32} className="text-emerald-400" />
+          </div>
+
+          <div>
+            <h3 className="text-xl font-bold text-white mb-1">
+              ✅ IP Registered Successfully!
+            </h3>
+            <p className="text-sm text-slate-300 mb-4">
+              Your work has been registered on-chain with Story Protocol
+            </p>
+          </div>
+
+          <div className="w-full bg-slate-900/50 rounded-lg p-4 border border-slate-700/30 space-y-3">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">IP Asset ID (ipId)</p>
+              <p className="text-sm font-mono text-emerald-300 break-all">
+                {registerState.ipId}
+              </p>
+            </div>
+
+            {registerState.txHash && (
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Transaction Hash</p>
+                <p className="text-sm font-mono text-slate-300 break-all">
+                  {registerState.txHash}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <a
+            href={`https://explorer.story.foundation/ipa/${registerState.ipId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center gap-2"
+          >
+            <ExternalLink size={18} />
+            View on Story Explorer
+          </a>
+
+          <p className="text-xs text-slate-400 mt-2">
+            To register another IP, start a new conversation
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl mx-auto">
+    <div className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl mx-auto transition-opacity ${isLoading ? "opacity-75" : ""}`}>
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
