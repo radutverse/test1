@@ -244,10 +244,10 @@ export function useIPRegistrationAgent() {
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
         // Use the same SPG collection as before (previously used by guest)
-        const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION;
+        const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION_USERS;
         if (!spg) {
           throw new Error(
-            "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION)",
+            "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION_USERS)",
           );
         }
 
