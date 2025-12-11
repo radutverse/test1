@@ -305,7 +305,6 @@ export function useIPRegistrationAgent() {
                 const chainIdHex: string = await provider.request({
                   method: "eth_chainId",
                 });
-                // 0x5ea = 1514 (mainnet), 0x523 = 1315 (aeneid testnet)
                 if (chainIdHex?.toLowerCase() !== "0x5ea") {
                   try {
                     await provider.request({
@@ -365,11 +364,10 @@ export function useIPRegistrationAgent() {
               if (!a) throw new Error("No wallet address available");
               addr = a as string;
 
-              // ✅ PERBAIKAN: chainId harus string "mainnet" atau "aeneid"
               story = StoryClient.newClient({
                 account: addr as `0x${string}`,
                 transport: custom(provider),
-                chainId: "mainnet", // atau "aeneid" untuk testnet
+                chainId: "mainnet",
               });
             } else {
               throw new Error(
@@ -387,23 +385,25 @@ export function useIPRegistrationAgent() {
         const addr = storyClientSetup.addr;
         const story = storyClientSetup.story;
 
-        // ✅ PERBAIKAN: licenseTermsData dengan format yang benar
+        // ✅ PERBAIKAN: licenseTermsData dengan isSet: true
+        const commercialRevShareValue = Number(licenseSettings.revShare) || 0;
+        const mintingFeeValue = parseEther(
+          String(licenseSettings.licensePrice || 0),
+        );
+
         const licenseTermsData = [
           {
             terms: PILFlavor.commercialRemix({
-              commercialRevShare: Number(licenseSettings.revShare) || 0,
-              defaultMintingFee: parseEther(
-                String(licenseSettings.licensePrice || 0),
-              ),
+              commercialRevShare: commercialRevShareValue,
+              defaultMintingFee: mintingFeeValue,
               currency: WIP_TOKEN_ADDRESS,
             }),
-            // ✅ TAMBAHAN: licensingConfig (opsional tapi recommended)
             licensingConfig: {
-              isSet: false,
-              mintingFee: 0n,
+              isSet: true, // ✅ HARUS TRUE agar license aktif dan terdeteksi
+              mintingFee: mintingFeeValue,
               licensingHook: "0x0000000000000000000000000000000000000000" as `0x${string}`,
               hookData: "0x" as `0x${string}`,
-              commercialRevShare: 0,
+              commercialRevShare: commercialRevShareValue,
               disabled: false,
               expectMinimumGroupRewardShare: 0,
               expectGroupRewardPool: "0x0000000000000000000000000000000000000000" as `0x${string}`,
@@ -418,6 +418,7 @@ export function useIPRegistrationAgent() {
           console.log("Starting mint and register transaction...", {
             spgNftContract: spg,
             recipient: addr,
+            licenseTermsData,
           });
 
           result = await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
@@ -436,6 +437,7 @@ export function useIPRegistrationAgent() {
           console.log("✅ Mint and register transaction submitted", {
             ipId: result?.ipId,
             txHash: result?.txHash || result?.transactionHash,
+            licenseTermsIds: result?.licenseTermsIds,
             result,
           });
 
@@ -475,6 +477,7 @@ export function useIPRegistrationAgent() {
           success: true,
           ipId: result?.ipId,
           txHash: result?.txHash || result?.transactionHash,
+          licenseTermsIds: result?.licenseTermsIds,
           imageUrl: imageGateway,
           ipMetadataUrl: toHttps(ipMetaCid),
         } as const;
