@@ -15,7 +15,7 @@ export const DEFAULT_LICENSE_SETTINGS: LicenseSettings = {
   revShare: 0,
 };
 
-// Royalty Policy LAP address (mainnet)
+// Story Protocol Mainnet addresses
 export const ROYALTY_POLICY_LAP = "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E";
 
 export function getLicenseSettingsByType(
@@ -51,21 +51,21 @@ export function getLicenseSettingsByType(
   }
 }
 
-// Konversi ke Story Protocol LicenseTerms (on-chain format)
+// Konversi ke Story Protocol LicenseTerms (on-chain)
 export function toLicenseTerms(settings: LicenseSettings): LicenseTerms {
   const isCommercial = settings.pilType !== "non_commercial_social_remix";
   const allowDerivatives = settings.pilType !== "commercial_use";
 
   return {
     transferable: true,
-    royaltyPolicy: ROYALTY_POLICY_LAP,
+    royaltyPolicy: isCommercial ? ROYALTY_POLICY_LAP : zeroAddress,
     defaultMintingFee: parseEther(String(settings.licensePrice)),
     expiration: 0n,
     commercialUse: isCommercial,
     commercialAttribution: isCommercial,
     commercializerChecker: zeroAddress,
     commercializerCheckerData: "0x",
-    commercialRevShare: settings.revShare * 10 ** 6, // Convert to protocol format
+    commercialRevShare: settings.revShare * 10 ** 6,
     commercialRevCeiling: 0n,
     derivativesAllowed: allowDerivatives,
     derivativesAttribution: allowDerivatives,
@@ -73,20 +73,14 @@ export function toLicenseTerms(settings: LicenseSettings): LicenseTerms {
     derivativesReciprocal: allowDerivatives,
     derivativeRevCeiling: 0n,
     currency: WIP_TOKEN_ADDRESS,
-    uri: getOffChainUri(settings),
+    uri: "",
   };
 }
 
-function getOffChainUri(settings: LicenseSettings): string {
-  const baseUri = "https://github.com/piplabs/pil-document/blob/main/off-chain-terms";
-  switch (settings.pilType) {
-    case "non_commercial_social_remix":
-      return `${baseUri}/NonCommercialSocialRemixing.json`;
-    case "commercial_use":
-      return `${baseUri}/CommercialUse.json`;
-    case "commercial_remix":
-      return `${baseUri}/CommercialRemix.json`;
-    default:
-      return "";
-  }
+// Legacy function untuk backward compatibility
+export function createLicenseTerms(settings: LicenseSettings) {
+  return {
+    pilType: settings.pilType,
+    terms: toLicenseTerms(settings),
+  } as const;
 }
