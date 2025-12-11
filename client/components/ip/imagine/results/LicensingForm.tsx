@@ -2,7 +2,7 @@ import { useState, forwardRef, useImperativeHandle } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
 import { createWalletClient, custom } from "viem";
-import { keccakOfJson } from "@/lib/utils/crypto";
+import { sha256HexOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
 
 // --- INTERFACE ---
@@ -281,8 +281,8 @@ const LicensingFormComponent = (
         ],
       };
 
-      const ipMetadataHash = keccakOfJson(ipMetadataObj);
-      const nftMetadataHash = keccakOfJson(nftMetadataObj);
+      const ipMetadataHash = await sha256HexOfJson(ipMetadataObj);
+      const nftMetadataHash = await sha256HexOfJson(nftMetadataObj);
 
       // Upload IP metadata
       const ipMetadataFormData = new FormData();
