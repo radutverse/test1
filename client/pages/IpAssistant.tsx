@@ -1039,68 +1039,7 @@ const IpAssistant = () => {
         await runDetection(imageToProcess.blob, imageToProcess.name);
         setPreviewImages({ remixImage: null, additionalImage: null });
       } else if (lastUploadBlobRef.current) {
-        // Hash Detection for previously uploaded images
-        try {
-          const hash = await calculateBlobHash(lastUploadBlobRef.current);
-          const pHash = await calculatePerceptualHash(
-            lastUploadBlobRef.current,
-          );
-          console.log(
-            "[Hash Detection] SHA256:",
-            hash,
-            "pHash:",
-            pHash,
-            "(from previous upload)",
-          );
-
-          const hashCheckResponse = await fetch("/api/check-remix-hash", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hash, pHash }),
-          });
-
-          if (hashCheckResponse.ok) {
-            const hashCheck = await hashCheckResponse.json();
-            if (hashCheck.found) {
-              // Hash found - offer remix instead of blocking
-              autoScrollNextRef.current = true;
-
-              // Check if derivatives are allowed
-              const derivativesAllowed = hashCheck.derivativesAllowed !== false;
-              const warningText = derivativesAllowed
-                ? `⚠️ This is copyrighted content. Remixing is allowed.`
-                : `⚠️ This is copyrighted content.`;
-
-              const metadata = hashCheck.metadata || {};
-              const warningMessage: Message = {
-                id: `msg-${Date.now()}`,
-                from: "bot",
-                text: warningText,
-                ts: getCurrentTimestamp(),
-                action: {
-                  type: "remix",
-                  label: "Remix this",
-                  imageBlob: lastUploadBlobRef.current!,
-                  imageName: lastUploadNameRef.current || "image.jpg",
-                  ipId: metadata.ipId,
-                  title: metadata.title,
-                  disabled: !derivativesAllowed,
-                  whitelistDetails: metadata as any,
-                },
-              };
-              setMessages((prev) => [...prev, warningMessage]);
-              return;
-            }
-          }
-        } catch (hashError) {
-          console.warn(
-            "Hash check failed, continuing with registration:",
-            hashError,
-          );
-          // Continue to OpenAI analysis if hash check fails
-        }
-
-        // Hash check passed - proceed to OpenAI image classification
+        // Proceed to OpenAI image classification
         await runDetection(
           lastUploadBlobRef.current,
           lastUploadNameRef.current || "image.jpg",
