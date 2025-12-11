@@ -270,38 +270,56 @@ export const ExpandedAssetModal = ({
           )}
 
           {/* Metadata Badges */}
-          <div className="flex flex-wrap gap-3">
-            <span
-              className={`text-xs px-3 py-2 rounded-full font-semibold whitespace-nowrap backdrop-blur-sm border transition-all ${
+          <div className="flex flex-wrap gap-2.5">
+            <motion.span
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className={`text-xs px-4 py-2.5 rounded-full font-semibold whitespace-nowrap backdrop-blur-sm border transition-all ${
                 asset.isDerivative
-                  ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                  : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                  ? "bg-blue-500/25 text-blue-200 border-blue-500/40 hover:bg-blue-500/35"
+                  : "bg-emerald-500/25 text-emerald-200 border-emerald-500/40 hover:bg-emerald-500/35"
               }`}
             >
               {asset.isDerivative ? "🔄 Remix" : "✨ Original"}
-            </span>
+            </motion.span>
 
             {asset.score !== undefined && (
-              <span className="text-xs px-3 py-2 rounded-full bg-[#FF4DA6]/20 text-[#FF4DA6] border border-[#FF4DA6]/30 font-semibold whitespace-nowrap backdrop-blur-sm">
+              <motion.span
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="text-xs px-4 py-2.5 rounded-full bg-[#FF4DA6]/25 text-[#FF4DA6] border border-[#FF4DA6]/40 font-semibold whitespace-nowrap backdrop-blur-sm hover:bg-[#FF4DA6]/35 transition-all"
+              >
                 {(asset.score * 100).toFixed(0)}% Match
-              </span>
+              </motion.span>
             )}
 
             {asset.mediaType && (
-              <span className="text-xs px-3 py-2 rounded-full bg-slate-800/60 text-slate-300 border border-slate-700/50 font-semibold whitespace-nowrap backdrop-blur-sm">
+              <motion.span
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-xs px-4 py-2.5 rounded-full bg-slate-800/50 text-slate-300 border border-slate-700/60 font-semibold whitespace-nowrap backdrop-blur-sm hover:bg-slate-800/70 transition-all"
+              >
                 {asset.mediaType
                   ?.replace("video/", "")
                   .replace("audio/", "")
                   .replace("image/", "")
                   .toUpperCase() || "Media"}
-              </span>
+              </motion.span>
             )}
 
             {asset.ownerAddress && (
-              <span className="text-xs px-3 py-2 rounded-full bg-slate-800/60 text-slate-300 border border-slate-700/50 font-mono whitespace-nowrap backdrop-blur-sm">
+              <motion.span
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="text-xs px-4 py-2.5 rounded-full bg-slate-800/50 text-slate-300 border border-slate-700/60 font-mono whitespace-nowrap backdrop-blur-sm hover:bg-slate-800/70 transition-all"
+              >
                 {asset.ownerAddress.slice(0, 8)}...
                 {asset.ownerAddress.slice(-6)}
-              </span>
+              </motion.span>
             )}
           </div>
 
