@@ -3,7 +3,6 @@ import {
   DEFAULT_LICENSE_SETTINGS,
   getLicenseSettingsByType,
 } from "@/lib/license/terms";
-import { determineLicenseTypeByGroup } from "@/lib/license/license-types";
 
 export const GROUPS = {
   SELFIE_REQUIRED: [5, 10],
@@ -12,36 +11,38 @@ export const GROUPS = {
   DIRECT_REGISTER_MANUAL_AI: [9, 11, 14],
 };
 
-/**
- * Intelligently determine license settings based on classification group.
- * Uses smart mapping to select the best license type for each group.
- */
+// Mapping grup ke license type
+function determineLicenseTypeByGroup(group: number): string {
+  if (GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group)) {
+    return "commercial-remix";
+  }
+  if (GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)) {
+    return "commercial-remix";
+  }
+  return "non-commercial-social-remixing";
+}
+
 export function getLicenseSettingsByGroup(
   group: number,
   aiTrainingManual?: boolean,
   mintingFee?: number,
-  revShare?: number,
+  revShare?: number
 ): LicenseSettings | null {
-  // Groups that can directly register
   if (
     GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) ||
     GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)
   ) {
-    // Determine the best license type for this group
     const licenseType = determineLicenseTypeByGroup(group);
-
-    // Get license settings based on the determined type
     return getLicenseSettingsByType(
       licenseType,
       GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)
         ? (aiTrainingManual ?? true)
         : false,
       mintingFee,
-      revShare,
+      revShare
     );
   }
 
-  // Groups requiring selfie verification or review cannot register yet
   if (
     GROUPS.SELFIE_REQUIRED.includes(group) ||
     GROUPS.SUBMIT_REVIEW.includes(group)
@@ -61,6 +62,5 @@ export function requiresSubmitReview(group: number) {
 }
 
 export function isAiGeneratedGroup(group: number) {
-  // Based on determineGroup mapping in server/routes/upload.ts
   return [1, 2, 3, 4, 5, 6, 12, 13].includes(group);
 }
