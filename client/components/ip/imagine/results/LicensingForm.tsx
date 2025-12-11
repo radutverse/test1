@@ -5,9 +5,6 @@ import { createWalletClient, custom } from "viem";
 import { keccakOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
 
-// --- KONSTANTA ---
-// HAPUS: licenseDocument tidak didukung SDK
-
 // --- INTERFACE ---
 interface ParentLicense {
   licenseTermsId: string;
