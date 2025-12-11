@@ -294,7 +294,7 @@ export function useIPRegistrationAgent() {
         });
 
         const result: any =
-          await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
+          await story.ipAsset.mintAndRegisterIpAndAttachPILTerms({
             spgNftContract: spg as `0x${string}`,
             recipient: addr as `0x${string}`,
             licenseTermsData,
