@@ -30,6 +30,8 @@ export type RegisterState = {
     | "creating-metadata"
     | "uploading-metadata"
     | "minting"
+    | "registering-terms"
+    | "attaching-terms"
     | "success"
     | "error";
   progress: number;
@@ -389,45 +391,43 @@ export function useIPRegistrationAgent() {
         const story = storyClientSetup.story;
 
         // Commercial Remix license terms with full PIL Terms structure
-        const licenseTermsData = [
-          {
-            terms: {
-              transferable: false,
-              royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",
-              defaultMintingFee: parseEther(
-                String(licenseSettings.licensePrice || 0),
-              ),
-              expiration: 0n,
-              commercialUse: true,
-              commercialAttribution: true,
-              commercializerChecker: zeroAddress,
-              commercializerCheckerData: "0x",
-              commercialRevShare: Number(licenseSettings.revShare) || 0,
-              commercialRevCeiling: 0n,
-              derivativesAllowed: true,
-              derivativesAttribution: true,
-              derivativesApproval: false,
-              derivativesReciprocal: true,
-              derivativeRevCeiling: 999999999n,
-              currency: WIP_TOKEN_ADDRESS,
-              uri: "",
-            } as LicenseTerms,
-          },
-        ];
+        const licenseTerms: LicenseTerms = {
+          transferable: false,
+          royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",
+          defaultMintingFee: parseEther(
+            String(licenseSettings.licensePrice || 0),
+          ),
+          expiration: 0n,
+          commercialUse: true,
+          commercialAttribution: true,
+          commercializerChecker: zeroAddress,
+          commercializerCheckerData: "0x",
+          commercialRevShare: Number(licenseSettings.revShare) || 0,
+          commercialRevCeiling: 0n,
+          derivativesAllowed: true,
+          derivativesAttribution: true,
+          derivativesApproval: false,
+          derivativesReciprocal: true,
+          derivativeRevCeiling: 999999999n,
+          currency: WIP_TOKEN_ADDRESS,
+          uri: "",
+        };
 
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
 
-        let result: any;
+        let ipId: string;
+        let mintTxHash: string;
+
         try {
-          console.log("Starting mint and register transaction...", {
+          console.log("Step 1: Minting and registering IP Asset...", {
             spgNftContract: spg,
             recipient: addr,
           });
 
-          result = await story.ipAsset.mintAndRegisterIpAssetWithPilTerms({
+          // STEP 1: Register IP Asset (without license terms)
+          const mintResult = await story.ipAsset.mintAndRegisterIpAsset({
             spgNftContract: spg as `0x${string}`,
             recipient: addr as `0x${string}`,
-            licenseTermsData,
             ipMetadata: {
               ipMetadataURI,
               ipMetadataHash: ipMetadataHash as `0x${string}`,
@@ -437,15 +437,70 @@ export function useIPRegistrationAgent() {
             allowDuplicates: true,
           });
 
-          console.log("✅ Mint and register transaction submitted", {
-            ipId: result?.ipId,
-            txHash: result?.txHash || result?.transactionHash,
-            result,
+          ipId = mintResult.ipId as string;
+          mintTxHash = mintResult.txHash as string;
+
+          console.log("✅ IP Asset registered", {
+            ipId,
+            txHash: mintTxHash,
+          });
+
+          setRegisterState((p) => ({ ...p, progress: 82 }));
+
+          // STEP 2: Register PIL License Terms
+          console.log("Step 2: Registering PIL License Terms...");
+          setRegisterState((p) => ({
+            ...p,
+            status: "registering-terms",
+            progress: 85,
+          }));
+
+          const termsResult = await story.license.registerPILTerms(licenseTerms);
+          const licenseTermsId = termsResult.licenseTermsId;
+
+          console.log("✅ License Terms registered", {
+            licenseTermsId,
+            txHash: termsResult.txHash,
           });
 
           setRegisterState((p) => ({ ...p, progress: 90 }));
+
+          // STEP 3: Attach License Terms to IP Asset
+          console.log("Step 3: Attaching License Terms to IP Asset...");
+          setRegisterState((p) => ({
+            ...p,
+            status: "attaching-terms",
+            progress: 95,
+          }));
+
+          const attachResult = await story.license.attachLicenseTerms({
+            licenseTermsId: licenseTermsId.toString(),
+            ipId: ipId,
+          });
+
+          console.log("✅ License Terms attached", {
+            ipId,
+            licenseTermsId,
+            txHash: attachResult.txHash,
+          });
+
+          setRegisterState({
+            status: "success",
+            progress: 100,
+            error: null,
+            ipId,
+            txHash: mintTxHash,
+          });
+
+          return {
+            success: true,
+            ipId,
+            txHash: mintTxHash,
+            imageUrl: imageGateway,
+            ipMetadataUrl: toHttps(ipMetaCid),
+          } as const;
         } catch (txError: any) {
-          console.error("❌ Mint and register transaction failed:", {
+          console.error("❌ Registration failed:", {
             message: txError?.message,
             code: txError?.code,
             error: txError,
@@ -467,21 +522,6 @@ export function useIPRegistrationAgent() {
           }
           throw txError;
         }
-
-        setRegisterState({
-          status: "success",
-          progress: 100,
-          error: null,
-          ipId: result?.ipId,
-          txHash: result?.txHash || result?.transactionHash,
-        });
-        return {
-          success: true,
-          ipId: result?.ipId,
-          txHash: result?.txHash || result?.transactionHash,
-          imageUrl: imageGateway,
-          ipMetadataUrl: toHttps(ipMetaCid),
-        } as const;
       } catch (error: any) {
         const errorMsg =
           error?.message || error?.data?.message || String(error);
