@@ -200,7 +200,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
   return (
     <div
-      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-white/20 p-6 backdrop-blur-sm max-w-2xl transition-opacity ${isLoading ? "opacity-75" : ""}`}
+      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl transition-opacity ${isLoading ? "opacity-75" : ""}`}
     >
       {/* Header */}
       <div className="mb-6">
