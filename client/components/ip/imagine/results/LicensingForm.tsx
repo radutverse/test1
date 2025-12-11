@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, useImperativeHandle, useRef, forwardRef } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
 import { createWalletClient, custom } from "viem";
@@ -6,28 +6,22 @@ import { keccakOfJson } from "@/lib/utils/crypto";
 import { Address } from "viem";
 
 // --- KONSTANTA ---
-// HAPUS: licenseDocument tidak didukung SDK
+const OFFCHAIN_LICENSE_TERMS_URI =
+  "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/NCSR.json";
 
-// --- INTERFACE ---
+// --- INTERFACE YANG LEBIH AKURAT ---
+
 interface ParentLicense {
   licenseTermsId: string;
   terms?: {
     commercialUse: boolean;
-    commercialRevShare: number;
-    mintingFee?: string | number;
+    commercialRevShare: number; // Nilai terskala (misal, 5000000 untuk 5%)
     [key: string]: any;
   };
 }
 
-interface LicenseConfig {
-  maxMintingFee: bigint;
-  maxRts: number;
-  maxRevenueShare: number;
-  description: string;
-}
-
 interface ParentAsset {
-  ipId: Address;
+  ipId: Address; // Menggunakan tipe Address dari viem
   title?: string;
   licenses?: ParentLicense[];
 }
@@ -49,6 +43,7 @@ interface LicensingFormProps {
 }
 
 // --- KOMPONEN UTAMA ---
+
 const LicensingFormComponent = (
   {
     imageUrl,
@@ -66,6 +61,7 @@ const LicensingFormComponent = (
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
 
+
   // State
   const [title, setTitle] = useState("AI Generated Image");
   const [description, setDescription] = useState(
@@ -80,50 +76,26 @@ const LicensingFormComponent = (
     "idle" | "registering-derivative" | "claiming-revenue" | "success"
   >("idle");
 
+  // Expose handleRegister to parent component via ref
   useImperativeHandle(ref, () => ({
     handleRegister,
   }));
 
+  // Kalkulasi & Validasi Awal
   const isPaidRemix =
     parentAsset && parentAsset.licenses && parentAsset.licenses.length > 0;
   const parentLicense: ParentLicense | undefined = isPaidRemix
-    ? parentAsset.licenses[0]
+    ? parentAsset.licenses.find((l) => l.terms?.commercialUse === true)
     : undefined;
 
-  const isCommercialLicense = parentLicense?.terms?.commercialUse === true;
-
   const parentRevShareScaled = parentLicense?.terms?.commercialRevShare ?? 0;
+  // Nilai untuk tampilan (0-100)
   const parentRevSharePercentage = Number(parentRevShareScaled) / 1000000;
 
-  // Get license configuration based on commercial/non-commercial
-  const getLicenseConfig = (): LicenseConfig => {
-    if (!isCommercialLicense) {
-      // Non-Commercial License (e.g., NCSR - Non-Commercial Social Remixing)
-      return {
-        maxMintingFee: 0n,
-        maxRts: 0,
-        maxRevenueShare: 0,
-        description:
-          "Non-Commercial License: No fees or revenue share required",
-      };
-    }
-
-    // Commercial License
-    const mintingFee = parentLicense?.terms?.mintingFee
-      ? BigInt(String(parentLicense.terms.mintingFee))
-      : 0n;
-
-    return {
-      maxMintingFee: mintingFee,
-      maxRts: 100_000_000,
-      maxRevenueShare: 100,
-      description: `Commercial License: Minting Fee ${mintingFee > 0n ? "applies" : "not required"}, ${parentRevSharePercentage.toFixed(2)}% revenue share`,
-    };
-  };
-
-  const licenseConfig = getLicenseConfig();
+  // --- FUNGSI UTAMA ---
 
   const handleConvertImageToFile = async (): Promise<File> => {
+    // ... (Logika konversi dipertahankan karena sudah benar)
     if (!imageUrl) {
       throw new Error("No image URL available");
     }
@@ -155,6 +127,7 @@ const LicensingFormComponent = (
   };
 
   const handleRegister = async () => {
+    // --- 1. PRE-CHECK VALIDASI ---
     if (!imageUrl) return setRegisterError("No image to register");
     if (!isPaidRemix || !parentAsset)
       return setRegisterError("Parent asset data required for licensing");
@@ -162,6 +135,7 @@ const LicensingFormComponent = (
       return setRegisterError("No commercial license found on parent IP");
     if (!authenticated)
       return setRegisterError("Please connect your wallet to register");
+
 
     setIsRegistering(true);
     setRegisterError(null);
@@ -171,71 +145,101 @@ const LicensingFormComponent = (
     let childIpId: Address | undefined;
 
     try {
+      // --- 2. SETUP WALLET & CLIENT ---
       let ethProvider: any = (window as any).ethereum;
       if (wallets && wallets[0]?.getEthereumProvider) {
         try {
           ethProvider = await wallets[0].getEthereumProvider();
         } catch (err) {
-          console.warn("Failed to get ethereum provider:", err);
+          console.warn(
+            "Failed to get ethereum provider from wallet, using window.ethereum:",
+            err,
+          );
         }
       }
 
       if (!ethProvider) {
-        throw new Error("Ethereum provider not available.");
+        throw new Error(
+          "Ethereum provider not available. Please ensure wallet is connected.",
+        );
       }
 
-      // Chain switching logic...
       try {
-        const chainIdHex: string = await ethProvider.request({
-          method: "eth_chainId",
-        });
+        // Ensure wallet is connected to the Story chain (chainId: 0x5ea = 1514 in decimal)
+        try {
+          const chainIdHex: string = await ethProvider.request({
+            method: "eth_chainId",
+          });
+          console.log("Current chain ID:", chainIdHex);
 
-        if (chainIdHex?.toLowerCase() !== "0x5ea") {
-          try {
-            await ethProvider.request({
-              method: "wallet_switchEthereumChain",
-              params: [{ chainId: "0x5ea" }],
-            });
-          } catch (switchError: any) {
-            try {
-              await ethProvider.request({
-                method: "wallet_addEthereumChain",
-                params: [
-                  {
-                    chainId: "0x5ea",
-                    chainName: "Story",
-                    nativeCurrency: { name: "IP", symbol: "IP", decimals: 18 },
-                    rpcUrls: ["https://mainnet.storyrpc.io"],
-                  },
-                ],
-              });
-            } catch {}
+          if (chainIdHex?.toLowerCase() !== "0x5ea") {
+            console.log("Switching to Story chain...");
             try {
               await ethProvider.request({
                 method: "wallet_switchEthereumChain",
                 params: [{ chainId: "0x5ea" }],
               });
-            } catch {}
+            } catch (switchError: any) {
+              // If chain doesn't exist, add it
+              console.log("Adding Story chain...");
+              try {
+                await ethProvider.request({
+                  method: "wallet_addEthereumChain",
+                  params: [
+                    {
+                      chainId: "0x5ea",
+                      chainName: "Story",
+                      nativeCurrency: {
+                        name: "IP",
+                        symbol: "IP",
+                        decimals: 18,
+                      },
+                      rpcUrls: ["https://mainnet.storyrpc.io"],
+                    },
+                  ],
+                });
+              } catch {}
+              // Try switching again after adding
+              try {
+                await ethProvider.request({
+                  method: "wallet_switchEthereumChain",
+                  params: [{ chainId: "0x5ea" }],
+                });
+              } catch {}
+            }
           }
+        } catch (chainError: any) {
+          console.warn(
+            "Chain switching warning (may continue):",
+            chainError?.message,
+          );
         }
-      } catch (chainError: any) {
-        console.warn("Chain switching warning:", chainError?.message);
-      }
 
-      try {
-        const accounts = await ethProvider.request({ method: "eth_accounts" });
-        if (!accounts || accounts.length === 0) {
-          await ethProvider.request({ method: "eth_requestAccounts" });
+        // Ensure wallet is connected and has accounts
+        try {
+          const accounts = await ethProvider.request({
+            method: "eth_accounts",
+          });
+
+          if (!accounts || accounts.length === 0) {
+            // Request account access if not connected
+            await ethProvider.request({
+              method: "eth_requestAccounts",
+            });
+          }
+        } catch (accountError: any) {
+          console.error(`Failed to connect wallet: ${accountError.message}`);
+          throw accountError;
         }
-      } catch (accountError: any) {
-        throw accountError;
-      }
 
-      const walletClient = createWalletClient({
-        transport: custom(ethProvider),
-      });
-      const [a] = await walletClient.getAddresses();
-      if (a) addr = a;
+        const walletClient = createWalletClient({
+          transport: custom(ethProvider),
+        });
+        const [a] = await walletClient.getAddresses();
+        if (a) addr = a;
+      } catch (walletError: any) {
+        console.warn("Failed to get wallet address:", walletError);
+      }
 
       if (!addr) throw new Error("Could not determine wallet address");
 
@@ -245,7 +249,7 @@ const LicensingFormComponent = (
       const storyClient = StoryClient.newClient({
         account: addr,
         transport: custom(ethProvider),
-        chainId: "mainnet", // atau "aeneid" untuk testnet
+        chainId: 1514,
       });
 
       const file = await handleConvertImageToFile();
@@ -261,8 +265,10 @@ const LicensingFormComponent = (
       if (!uploadRes.ok) throw new Error("Failed to upload image to IPFS");
       const { url: imageUri } = await uploadRes.json();
 
+      // Use wallet users SPG contract
       const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION_USERS;
-      if (!spg) throw new Error("SPG collection not configured");
+      if (!spg)
+        throw new Error(`SPG collection not configured for wallet users`);
 
       const ipMetadataObj = {
         title: title || "AI Generated Image",
@@ -287,7 +293,7 @@ const LicensingFormComponent = (
       const ipMetadataHash = keccakOfJson(ipMetadataObj);
       const nftMetadataHash = keccakOfJson(nftMetadataObj);
 
-      // Upload IP metadata
+      // Upload IP metadata JSON to IPFS
       const ipMetadataFormData = new FormData();
       ipMetadataFormData.append(
         "file",
@@ -298,11 +304,12 @@ const LicensingFormComponent = (
         method: "POST",
         body: ipMetadataFormData,
       });
+
       if (!ipMetadataUploadRes.ok)
-        throw new Error("Failed to upload IP metadata");
+        throw new Error("Failed to upload IP metadata to IPFS");
       const { url: ipMetadataUri } = await ipMetadataUploadRes.json();
 
-      // Upload NFT metadata
+      // Upload NFT metadata JSON to IPFS
       const nftMetadataFormData = new FormData();
       nftMetadataFormData.append(
         "file",
@@ -315,37 +322,30 @@ const LicensingFormComponent = (
         method: "POST",
         body: nftMetadataFormData,
       });
+
       if (!nftMetadataUploadRes.ok)
-        throw new Error("Failed to upload NFT metadata");
+        throw new Error("Failed to upload NFT metadata to IPFS");
       const { url: nftMetadataUri } = await nftMetadataUploadRes.json();
 
-      // STEP 1: REGISTER DERIVATIVE IP ASSET
+      // ========================================
+      // STEP 1: REGISTER DERIVATIVE IP ASSET (Combined operation)
+      // ========================================
       console.log("📝 Step 1: Registering derivative IP asset...");
       setCurrentStep("registering-derivative");
-      onRegisterStart?.({
-        status: "Registering derivative IP asset...",
-        progress: 50,
-        error: null,
-      });
-
-      try {
-        console.log("📋 License Configuration:", {
-          type: isCommercialLicense ? "Commercial" : "Non-Commercial",
-          maxMintingFee: licenseConfig.maxMintingFee.toString(),
-          maxRts: licenseConfig.maxRts,
-          maxRevenueShare: licenseConfig.maxRevenueShare,
-          description: licenseConfig.description,
+      onRegisterStart &&
+        onRegisterStart({
+          status: "Registering derivative IP asset...",
+          progress: 50,
+          error: null,
         });
 
+      try {
         const derivativeResponse =
           await storyClient.ipAsset.registerDerivativeIpAsset({
             nft: { type: "mint", spgNftContract: spg as Address },
             derivData: {
               parentIpIds: [parentAsset.ipId],
               licenseTermsIds: [BigInt(parentLicense.licenseTermsId)],
-              maxMintingFee: licenseConfig.maxMintingFee,
-              maxRts: licenseConfig.maxRts,
-              maxRevenueShare: licenseConfig.maxRevenueShare,
             },
             ipMetadata: {
               ipMetadataURI: ipMetadataUri,
@@ -353,21 +353,26 @@ const LicensingFormComponent = (
               nftMetadataURI: nftMetadataUri,
               nftMetadataHash: nftMetadataHash as `0x${string}`,
             },
-            // HAPUS licenseDocument - tidak didukung SDK
+            licenseDocument: {
+              uri: OFFCHAIN_LICENSE_TERMS_URI,
+            },
           });
 
         childIpId = derivativeResponse.ipId as Address;
         console.log("✅ Derivative IP asset registered:", childIpId);
+        console.log("📋 Metadata URIs:", { ipMetadataUri, nftMetadataUri });
       } catch (registerError: any) {
         const errorMsg = registerError?.message || String(registerError);
         console.error("❌ Register derivative error:", errorMsg);
 
+        // Check if user rejected the transaction
         if (
           registerError?.code === 4001 ||
           errorMsg.includes("User rejected")
         ) {
           throw new Error("Transaction was rejected by the user");
         }
+        // Check for other common wallet errors
         if (errorMsg.includes("insufficient funds")) {
           throw new Error("Insufficient funds for gas and transaction");
         }
@@ -380,26 +385,25 @@ const LicensingFormComponent = (
         throw new Error(`Failed to register derivative IP: ${errorMsg}`);
       }
 
-      // STEP 2: PARENT CLAIMS REVENUE (OPTIONAL)
+      // ========================================
+      // STEP 2: PARENT CLAIMS REVENUE
+      // ========================================
       console.log("💰 Step 2: Parent claiming revenue...");
       setCurrentStep("claiming-revenue");
-      onRegisterStart?.({
-        status: "Parent claiming revenue...",
-        progress: 85,
-        error: null,
-      });
+      onRegisterStart &&
+        onRegisterStart({
+          status: "Parent claiming revenue...",
+          progress: 85,
+          error: null,
+        });
 
       try {
-        // claimAllRevenue dengan parameter yang benar
         const revenueResponse = await storyClient.royalty.claimAllRevenue({
           ancestorIpId: parentAsset.ipId,
           claimer: parentAsset.ipId,
           currencyTokens: [WIP_TOKEN_ADDRESS],
           childIpIds: childIpId ? [childIpId] : [],
-          // RoyaltyPolicyLAP address dari deployed contracts
-          royaltyPolicies: [
-            "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as Address,
-          ],
+          royaltyPolicies: [],
         });
 
         console.log(
@@ -407,53 +411,336 @@ const LicensingFormComponent = (
           revenueResponse.claimedTokens,
         );
       } catch (revenueError: any) {
-        // Non-critical error - derivative sudah terdaftar
         console.warn(
-          "⚠️ Revenue claiming issue (non-critical):",
+          "⚠️ Revenue claiming encountered an issue (non-critical):",
           revenueError?.message,
         );
       }
 
-      // FINALIZE
+      // --- FINALIZE ---
       setCurrentStep("success");
       setRegisteredIpId(childIpId || "pending");
       setRegisterSuccess(true);
-
-      const licenseTypeMsg = isCommercialLicense
-        ? `Commercial (${parentRevSharePercentage.toFixed(2)}% revenue share)`
-        : "Non-Commercial";
-
       setSuccessMessage(
-        `✅ Derivative registered (${licenseTypeMsg}). Child IP: ${childIpId}`,
+        `✅ Derivative registered with ${parentRevSharePercentage.toFixed(2)}% revenue share. Child IP: ${childIpId}`,
       );
 
-      onRegisterComplete?.({
-        ipId: childIpId as Address,
-        txHash: childIpId as Address,
-      });
+      if (onRegisterComplete) {
+        onRegisterComplete({
+          ipId: childIpId as Address,
+          txHash: childIpId as Address,
+        });
+      }
     } catch (error: any) {
-      const errorMsg = error?.message || String(error);
+      const errorMsg = error?.message || error?.data?.message || String(error);
 
+      // Provide user-friendly error messages
       let userFriendlyMsg = errorMsg;
       if (errorMsg.includes("rejected by the user")) {
-        userFriendlyMsg = "❌ You rejected the transaction.";
+        userFriendlyMsg =
+          "❌ You rejected the transaction. Please try again if you want to proceed.";
       } else if (errorMsg.includes("insufficient funds")) {
-        userFriendlyMsg = "❌ Insufficient funds for gas fees.";
+        userFriendlyMsg =
+          "❌ Insufficient funds for gas fees. Please add more IP tokens.";
+      } else if (errorMsg.includes("network")) {
+        userFriendlyMsg =
+          "❌ Network connection error. Please check your connection and try again.";
+      } else if (errorMsg.includes("CallerNotAuthorizedToMint")) {
+        userFriendlyMsg =
+          "❌ Your wallet is not authorized to mint on this contract. Please check with the admin.";
+      } else if (errorMsg.includes("Failed to register")) {
+        userFriendlyMsg = `❌ Registration failed. Please try again. (${errorMsg.substring(0, 50)}...)`;
       }
 
       setRegisterError(userFriendlyMsg);
-      console.error("❌ Full registration error:", error);
-      onRegisterError?.(userFriendlyMsg);
+      console.error("❌ Full registration error:", {
+        message: errorMsg,
+        error,
+        stack: error?.stack,
+      });
+      // Notify parent component about the error
+      if (onRegisterError) {
+        onRegisterError(userFriendlyMsg);
+      }
+      // Set step kembali ke idle setelah error agar user bisa mencoba lagi
       setCurrentStep("idle");
     } finally {
       setIsRegistering(false);
     }
   };
 
-  // ... REST OF THE UI CODE REMAINS THE SAME ...
+  // --- RENDERING (UI dipertahankan karena sudah baik) ---
   return (
     <div className="w-full h-full p-6 space-y-4 flex flex-col">
-      {/* UI code tetap sama */}
+      {/* Success Message */}
+      {registerSuccess && (
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold text-emerald-400 mb-1">
+                Registration Successful!
+              </h4>
+              <p className="text-xs text-slate-400 mb-2">{successMessage}</p>
+              {registeredIpId && registeredIpId !== "pending" && (
+                <a
+                  href={`https://explorer.story.foundation/ipa/${registeredIpId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                >
+                  View on Explorer
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between border-b border-slate-800/50 pb-4">
+        <h3 className="text-xl font-semibold text-[#FF4DA6]">
+          {registerSuccess
+            ? "Derivative Registered"
+            : "License & Register Derivative"}
+        </h3>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+
+      {/* Parent Asset Info */}
+      {isPaidRemix && parentAsset && (
+        <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
+          <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">
+            Parent IP
+          </p>
+          <p className="text-sm text-slate-200 font-semibold mb-1">
+            {parentAsset.title || "Untitled"}
+          </p>
+          <p className="text-xs text-slate-400 font-mono break-all">
+            {parentAsset.ipId}
+          </p>
+          {parentLicense && (
+            <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">License Terms ID:</span>
+                <span className="text-slate-300 font-mono">
+                  {parentLicense.licenseTermsId}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-400">Revenue Share:</span>
+                <span className="text-slate-300 font-semibold">
+                  {parentRevSharePercentage.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Off-Chain License Terms */}
+      <div className="bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
+        <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">
+          Off-Chain License Terms
+        </p>
+        <a
+          href={OFFCHAIN_LICENSE_TERMS_URI}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors break-all"
+        >
+          <svg
+            className="w-4 h-4 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+          NCSR.json
+        </a>
+      </div>
+
+      {/* Form Content */}
+      <div className="space-y-4 flex-1 overflow-y-auto pr-1 px-0.5 py-2">
+        {/* Title Input */}
+        <div className="space-y-2">
+          <label className="text-sm text-slate-400 font-medium">
+            Child IP Title
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={isRegistering || registerSuccess}
+            className="w-full rounded-lg px-4 py-2.5 bg-slate-800/30 border border-slate-700/50 text-slate-100 text-sm placeholder-slate-500 disabled:opacity-50 transition-colors focus:outline-none focus:border-[#FF4DA6] focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 focus:ring-[#FF4DA6]/40"
+            placeholder="Enter child IP title"
+          />
+        </div>
+
+        {/* Description Input */}
+        <div className="space-y-2">
+          <label className="text-sm text-slate-400 font-medium">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={isRegistering || registerSuccess}
+            className="w-full rounded-lg px-4 py-2.5 bg-slate-800/30 border border-slate-700/50 text-slate-100 text-sm placeholder-slate-500 resize-none disabled:opacity-50 transition-colors focus:outline-none focus:border-[#FF4DA6] focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 focus:ring-[#FF4DA6]/40 leading-relaxed"
+            rows={2}
+            placeholder="Describe your derivative work"
+          />
+        </div>
+
+        {/* Revenue Share - Read-only, follows parent */}
+        {isPaidRemix && (
+          <div className="space-y-2">
+            <label className="text-sm text-slate-400 font-medium">
+              Revenue Share % (from parent IP)
+            </label>
+            <div className="w-full rounded-lg px-4 py-2.5 bg-slate-800/30 border border-slate-700/50 text-slate-100 text-sm flex items-center justify-between">
+              <span className="font-semibold">
+                {parentRevSharePercentage.toFixed(2)}%
+              </span>
+              <span className="text-xs text-slate-400">
+                Inherited from parent
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Child IP revenue share must match parent IP's revenue share
+              (scaled value: {parentRevShareScaled}).
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Status Messages */}
+      <div className="space-y-2 pt-3 border-t border-slate-800/50">
+
+        {/* Registration Status */}
+        {currentStep !== "idle" && currentStep !== "success" && (
+          <div className="rounded-lg px-3 py-2.5 bg-blue-500/10 border border-blue-500/30 text-sm text-blue-400 flex items-center gap-2">
+            <span className="inline-block animate-spin">⚙️</span>
+            <span className="capitalize">
+              {currentStep === "registering-derivative"
+                ? "Registering derivative IP asset..."
+                : "Claiming parent revenue..."}
+            </span>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {registerError && (
+          <div className="rounded-lg px-3 py-2.5 bg-red-500/10 border border-red-500/30 text-sm text-red-400 max-h-24 overflow-y-auto">
+            {registerError}
+          </div>
+        )}
+
+        {/* Auth Status */}
+        {!authenticated && (
+          <div className="rounded-lg px-3 py-2.5 bg-amber-500/10 border border-amber-500/30 text-sm text-amber-400">
+            ⚠️ Connect wallet to register
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-3 pt-3 border-t border-slate-800/50">
+        {registerSuccess ? (
+          <>
+            {registeredIpId && registeredIpId !== "pending" && (
+              <a
+                href={`https://explorer.story.foundation/ipa/${registeredIpId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 rounded-lg bg-emerald-600/20 px-4 py-2.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-600/30 transition-colors flex items-center justify-center gap-2 border border-emerald-500/30"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                Explorer
+              </a>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className={`${registeredIpId && registeredIpId !== "pending" ? "flex-1" : "w-full"} rounded-lg bg-slate-700/40 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-700/60 transition-colors border border-slate-600/40`}
+                type="button"
+              >
+                Close
+              </button>
+            )}
+          </>
+        ) : (
+          <button
+            onClick={handleRegister}
+            disabled={
+              isRegistering ||
+              currentStep !== "idle" ||
+              !authenticated ||
+              isLoading ||
+              !imageUrl ||
+              !isPaidRemix
+            }
+            className="w-full rounded-lg bg-[#FF4DA6]/20 px-4 py-2.5 text-sm font-semibold text-[#FF4DA6] hover:bg-[#FF4DA6]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-[#FF4DA6]/30"
+            type="button"
+            title={
+              !isPaidRemix
+                ? "Select a parent asset to enable licensing"
+                : `Register with ${parentRevSharePercentage.toFixed(2)}% revenue share from parent`
+            }
+          >
+            {isRegistering
+              ? `Registering... (${currentStep})`
+              : `Register Derivative (${parentRevSharePercentage.toFixed(2)}% Share)`}
+          </button>
+        )}
+      </div>
     </div>
   );
 };
