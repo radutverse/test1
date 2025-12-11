@@ -198,13 +198,19 @@ export const unifiedEditImage: RequestHandler = async (req, res) => {
     let imageUrl: string;
 
     if (mode === "demo") {
-      // Demo mode: return realistic dummy SVG (ignore uploaded image)
+      // Demo mode: return custom image (ignore uploaded image)
       console.log("📸 Processing demo image edit");
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate delay
-      const svgString = generateDemoSvgImage(prompt);
-      const base64 = Buffer.from(svgString).toString("base64");
-      imageUrl = `data:image/svg+xml;base64,${base64}`;
-      console.log("✅ Demo image edited successfully");
+      try {
+        const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+        imageUrl = await fetchImageAsDataUrl(customImageUrl);
+        console.log("✅ Demo image edited successfully");
+      } catch (error) {
+        console.warn("Failed to fetch custom image, falling back to SVG", error);
+        const svgString = generateDemoSvgImage(prompt);
+        const base64 = Buffer.from(svgString).toString("base64");
+        imageUrl = `data:image/svg+xml;base64,${base64}`;
+      }
     } else {
       // Production mode: use OpenAI
       const buffer = file.buffer;
