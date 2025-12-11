@@ -1,8 +1,8 @@
 export type LicenseSettings = {
-  pilType: "commercial_remix";
+  pilType: "non_commercial_social_remix" | "commercial_use" | "commercial_remix";
   aiLearning: boolean;
-  licensePrice: number; // in native units or USD-equivalent depending on chain integration
-  revShare: number; // percentage (0-100)
+  licensePrice: number;
+  revShare: number;
 };
 
 export const DEFAULT_LICENSE_SETTINGS: LicenseSettings = {
@@ -12,7 +12,46 @@ export const DEFAULT_LICENSE_SETTINGS: LicenseSettings = {
   revShare: 0,
 };
 
-// Shape compatible with Story Protocol terms generator expectations (logical placeholder for SDK integration)
+/**
+ * Get default license settings based on license type
+ */
+export function getLicenseSettingsByType(
+  licenseType: string,
+  aiTrainingManual?: boolean,
+  mintingFee?: number,
+  revShare?: number,
+): LicenseSettings {
+  switch (licenseType) {
+    case "non-commercial-social-remixing":
+      return {
+        pilType: "non_commercial_social_remix",
+        aiLearning: false,
+        licensePrice: 0, // Always free
+        revShare: 0, // No revenue share
+      };
+
+    case "commercial-use":
+      return {
+        pilType: "commercial_use",
+        aiLearning: false,
+        licensePrice: mintingFee ?? 1, // Requires minting fee
+        revShare: 0, // No revenue share
+      };
+
+    case "commercial-remix":
+      return {
+        pilType: "commercial_remix",
+        aiLearning: aiTrainingManual ?? true,
+        licensePrice: mintingFee ?? 0,
+        revShare: revShare ?? 0,
+      };
+
+    default:
+      return DEFAULT_LICENSE_SETTINGS;
+  }
+}
+
+// Shape compatible with Story Protocol terms generator expectations
 export function createLicenseTerms(settings: LicenseSettings) {
   return {
     pilType: settings.pilType,
