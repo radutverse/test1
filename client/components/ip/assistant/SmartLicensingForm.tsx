@@ -199,6 +199,15 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
         )}
       </div>
 
+      {/* Error State */}
+      {isError && registerState.error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <p className="text-sm text-red-300">
+            <span className="font-semibold">Error:</span> {registerState.error}
+          </p>
+        </div>
+      )}
+
       {/* License Selection Section */}
       <div className="mb-6 p-4 bg-slate-800/30 border border-slate-700/40 rounded-lg">
         <div className="mb-3">
@@ -210,7 +219,12 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowLicenseOptions(!showLicenseOptions)}
-              className="w-full flex items-center justify-between p-3 bg-slate-900/60 border border-slate-600/40 rounded-lg hover:border-slate-500/60 hover:bg-slate-900/80 transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50"
+              disabled={isLoading}
+              className={`w-full flex items-center justify-between p-3 bg-slate-900/60 border border-slate-600/40 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50 ${
+                isLoading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:border-slate-500/60 hover:bg-slate-900/80"
+              }`}
             >
               <div className="text-left">
                 <div className="flex items-center gap-2">
