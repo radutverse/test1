@@ -330,7 +330,7 @@ export function useIPRegistrationAgent() {
         const story = StoryClient.newClient({
           account: addr as any,
           transport: custom(provider),
-          chainId: "odyssey", // Story Protocol Mainnet
+          chainId: "mainnet", // Story Protocol Mainnet
         });
 
         const result: any =
