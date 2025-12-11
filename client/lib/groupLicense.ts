@@ -1,4 +1,5 @@
-import { LicenseSettings, DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
+import { LicenseSettings, DEFAULT_LICENSE_SETTINGS, getLicenseSettingsByType } from "@/lib/license/terms";
+import { determineLicenseTypeByGroup } from "@/lib/license/license-types";
 
 export const GROUPS = {
   SELFIE_REQUIRED: [5, 10],
@@ -8,8 +9,8 @@ export const GROUPS = {
 };
 
 /**
- * Returns Commercial Remix license settings for all registrable groups.
- * Only Commercial Remix license is supported.
+ * Intelligently determine license settings based on classification group.
+ * Uses smart mapping to select the best license type for each group.
  */
 export function getLicenseSettingsByGroup(
   group: number,
@@ -17,25 +18,18 @@ export function getLicenseSettingsByGroup(
   mintingFee?: number,
   revShare?: number,
 ): LicenseSettings | null {
-  // Commercial Remix settings for all directly registrable groups
-  if (GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group)) {
-    return {
-      ...DEFAULT_LICENSE_SETTINGS,
-      pilType: "commercial_remix",
-      aiLearning: false,
-      licensePrice: mintingFee ?? 0,
-      revShare: revShare ?? 0,
-    };
-  }
+  // Groups that can directly register
+  if (GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) || GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)) {
+    // Determine the best license type for this group
+    const licenseType = determineLicenseTypeByGroup(group);
 
-  if (GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)) {
-    return {
-      ...DEFAULT_LICENSE_SETTINGS,
-      pilType: "commercial_remix",
-      aiLearning: aiTrainingManual ?? true,
-      licensePrice: mintingFee ?? 0,
-      revShare: revShare ?? 0,
-    };
+    // Get license settings based on the determined type
+    return getLicenseSettingsByType(
+      licenseType,
+      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group) ? (aiTrainingManual ?? true) : false,
+      mintingFee,
+      revShare,
+    );
   }
 
   // Groups requiring selfie verification or review cannot register yet
