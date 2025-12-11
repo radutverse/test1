@@ -425,7 +425,7 @@ export function useIPRegistrationAgent() {
           });
 
           // STEP 1: Register IP Asset (without license terms)
-          const mintResult = await story.ipAsset.mintAndRegisterIpAsset({
+          const mintResult = await story.ipAsset.mintAndRegisterIp({
             spgNftContract: spg as `0x${string}`,
             recipient: addr as `0x${string}`,
             ipMetadata: {
