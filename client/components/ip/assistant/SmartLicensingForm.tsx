@@ -1,10 +1,18 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check, Loader2, ExternalLink } from "lucide-react";
 import {
   determineLicenseTypeByGroup,
   LICENSE_TYPES,
   determineLicenseType,
 } from "@/lib/license/license-types";
+
+export type RegisterState = {
+  status: "idle" | "compressing" | "uploading-image" | "creating-metadata" | "uploading-metadata" | "minting" | "success" | "error";
+  progress: number;
+  error: any;
+  ipId?: string;
+  txHash?: string;
+};
 
 interface SmartLicensingFormProps {
   group: number;
@@ -17,7 +25,7 @@ interface SmartLicensingFormProps {
     revShare: number;
     aiTraining: boolean;
   }) => void;
-  isLoading?: boolean;
+  registerState?: RegisterState;
 }
 
 /**
