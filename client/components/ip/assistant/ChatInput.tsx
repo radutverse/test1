@@ -184,6 +184,7 @@ const ChatInput = ({
           onKeyDown={handleKeyDown}
           placeholder={showCreations ? "Type to create…" : "Type a message…"}
           disabled={waiting}
+          autoComplete="off"
           className="flex-1 resize-none px-4 py-0 bg-transparent text-white placeholder:text-slate-400 min-h-[40px] max-h-32 overflow-y-auto focus:outline-none font-medium text-[0.97rem] disabled:opacity-50"
         />
       </div>
