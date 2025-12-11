@@ -2044,7 +2044,7 @@ const IpAssistant = () => {
                 <motion.div
                   key={`smart-licensing-${index}`}
                   {...getBubbleMotionProps(index)}
-                  className="flex items-center justify-center mb-3 gap-2 px-1 md:px-2 last:mb-1 w-full"
+                  className="flex items-start justify-start mb-3 gap-2 px-1 md:px-2 last:mb-1"
                 >
                   <SmartLicensingForm
                     group={licensingMsg.group}
