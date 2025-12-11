@@ -1,14 +1,23 @@
 import { useCallback, useState } from "react";
-import { StoryClient, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
-import { createWalletClient, custom, parseEther } from "viem";
+import { StoryClient } from "@story-protocol/core-sdk";
+import { createWalletClient, custom } from "viem";
 import {
   getLicenseSettingsByGroup,
   requiresSelfieVerification,
   requiresSubmitReview,
   isAiGeneratedGroup,
+  canDirectRegister,
 } from "@/lib/groupLicense";
 import { getLicenseSettingsByType, toLicenseTerms } from "@/lib/license/terms";
-// ... import IPFS utils tetap sama
+// ... import IPFS utils
+
+export type RegisterState = {
+  status: "idle" | "compressing" | "uploading-image" | "creating-metadata" | "uploading-metadata" | "minting" | "success" | "error";
+  progress: number;
+  error: any;
+  ipId?: string;
+  txHash?: string;
+};
 
 export function useIPRegistrationAgent() {
   const [registerState, setRegisterState] = useState<RegisterState>({
@@ -29,42 +38,80 @@ export function useIPRegistrationAgent() {
       licenseType?: string
     ) => {
       try {
-        // Validasi grup
+        // Validasi
         if (requiresSelfieVerification(group)) {
+          setRegisterState({ status: "idle", progress: 0, error: "Selfie verification required." });
           return { success: false, reason: "selfie_required" } as const;
         }
         if (requiresSubmitReview(group)) {
+          setRegisterState({ status: "idle", progress: 0, error: "Submit review required." });
           return { success: false, reason: "submit_review" } as const;
+        }
+        if (!canDirectRegister(group)) {
+          throw new Error("Group cannot register directly");
         }
 
         // Dapatkan license settings
-        let licenseSettings = licenseType
+        const licenseSettings = licenseType
           ? getLicenseSettingsByType(licenseType, aiTrainingManual, mintingFee, revShare)
           : getLicenseSettingsByGroup(group, aiTrainingManual, mintingFee, revShare);
 
-        if (!licenseSettings) {
-          throw new Error("Cannot register: licenseSettings null");
-        }
+        if (!licenseSettings) throw new Error("Cannot determine license settings");
 
-        // ... compress & upload image (tetap sama)
+        // Compress image
+        setRegisterState({ status: "compressing", progress: 10, error: null });
+        const compressedFile = await compressImage(file);
 
-        setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
+        // Upload image
+        setRegisterState((p) => ({ ...p, status: "uploading-image", progress: 25 }));
+        const fileUpload = await uploadFile(compressedFile);
+        const imageCid = extractCid(fileUpload.cid || fileUpload.url);
+        const imageGateway = fileUpload.https || toHttps(imageCid);
+        const imageHash = await sha256HexOfFile(compressedFile);
 
+        // Create metadata
+        setRegisterState((p) => ({ ...p, status: "creating-metadata", progress: 50 }));
         const provider = ethereumProvider || (globalThis as any).ethereum;
         if (!provider) throw new Error("No wallet provider available.");
 
+        const walletClient = createWalletClient({ transport: custom(provider) });
+        const [creatorAddr] = await walletClient.getAddresses();
+        if (!creatorAddr) throw new Error("Could not get wallet address.");
+
+        const ipMetadata = {
+          name: intent?.title || file.name,
+          title: intent?.title || file.name,
+          description: intent?.prompt || "",
+          image: imageGateway,
+          imageHash,
+          mediaUrl: imageGateway,
+          mediaHash: imageHash,
+          mediaType: compressedFile.type || "image/jpeg",
+          creators: [{ name: creatorAddr, address: creatorAddr, contributionPercent: 100 }],
+          attributes: [
+            { trait_type: "Status", value: isAiGeneratedGroup(group) ? "AI Generated" : "Human Generated" },
+            { trait_type: "License", value: licenseSettings.pilType },
+          ],
+        };
+
+        // Upload metadata
+        setRegisterState((p) => ({ ...p, status: "uploading-metadata", progress: 60 }));
+        const ipMetaUpload = await uploadJSON(ipMetadata);
+        const ipMetaCid = extractCid(ipMetaUpload.cid || ipMetaUpload.url);
+        const ipMetadataURI = toIpfsUri(ipMetaCid);
+        const ipMetadataHash = keccakOfJson(ipMetadata);
+
+        // Mint & Register
+        setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
         await switchToStoryNetwork(provider);
 
-        const walletClient = createWalletClient({ transport: custom(provider) });
-        const [addr] = await walletClient.getAddresses();
-
         const story = StoryClient.newClient({
-          account: addr,
+          account: creatorAddr,
           transport: custom(provider),
           chainId: "mainnet",
         });
 
-        // Konversi ke LicenseTerms on-chain
+        // Konversi ke on-chain LicenseTerms
         const licenseTerms = toLicenseTerms(licenseSettings);
 
         const result = await story.ipAsset.registerIpAsset({
@@ -89,23 +136,43 @@ export function useIPRegistrationAgent() {
           txHash: result?.txHash,
         });
 
-        return { success: true, ipId: result?.ipId, txHash: result?.txHash };
+        return {
+          success: true,
+          ipId: result?.ipId,
+          txHash: result?.txHash,
+          imageUrl: imageGateway,
+        };
       } catch (error: any) {
-        // ... error handling tetap sama
+        const msg = formatError(error);
+        setRegisterState({ status: "error", progress: 0, error: msg });
+        return { success: false, error: msg };
       }
     },
     []
   );
 
+  const resetRegister = useCallback(() => {
+    setRegisterState({ status: "idle", progress: 0, error: null });
+  }, []);
+
   return { registerState, executeRegister, resetRegister };
 }
 
+// Helper functions
 async function switchToStoryNetwork(provider: any) {
-  const chainIdHex = await provider.request({ method: "eth_chainId" });
-  if (chainIdHex?.toLowerCase() !== "0x5ea") {
+  const chainId = await provider.request({ method: "eth_chainId" });
+  if (chainId?.toLowerCase() !== "0x5ea") {
     await provider.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: "0x5ea" }],
     });
   }
+}
+
+function formatError(error: any): string {
+  const msg = error?.message || String(error);
+  if (msg.includes("rejected")) return "Transaction rejected by user.";
+  if (msg.includes("insufficient funds")) return "Insufficient funds for gas.";
+  if (msg.includes("CallerNotAuthorizedToMint")) return "Wallet not authorized to mint.";
+  return msg;
 }
