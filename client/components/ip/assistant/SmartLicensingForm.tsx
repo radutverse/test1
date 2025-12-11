@@ -86,7 +86,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   description,
   imageUrl,
   onRegister,
-  isLoading = false,
+  registerState = { status: "idle", progress: 0, error: null },
 }) => {
   // Determine the recommended license type
   const recommendedLicenseType = useMemo(
