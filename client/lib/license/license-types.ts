@@ -5,25 +5,11 @@ export interface LicenseTypeInfo {
 }
 
 export const LICENSE_TYPES: Record<string, LicenseTypeInfo> = {
-  "non-commercial-social-remixing": {
-    name: "Non-Commercial Social Remixing",
-    description: "Free remixing allowed, no commercial use permitted",
-    icon: "🎨",
-  },
-  "commercial-use": {
-    name: "Commercial Use",
-    description: "Pay to use commercially, no remix or derivatives allowed",
-    icon: "💼",
-  },
   "commercial-remix": {
     name: "Commercial Remix",
-    description: "Pay to use and remix commercially with revenue sharing",
+    description:
+      "Let the world build on and play with your creation… and earn money together from it! This license allows for endless free remixing while tracking all uses of your work while giving you full credit, with each derivative paying a percentage of revenue to its 'parent' IP.",
     icon: "🔄",
-  },
-  "creative-commons-attribution": {
-    name: "Creative Commons Attribution",
-    description: "Free to use and remix commercially with proper attribution",
-    icon: "📜",
   },
 };
 
