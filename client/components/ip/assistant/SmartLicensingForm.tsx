@@ -200,30 +200,30 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
   return (
     <div
-      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl transition-opacity ${isLoading ? "opacity-75" : ""}`}
+      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl p-6 backdrop-blur-sm max-w-2xl transition-opacity ${isLoading ? "opacity-75" : ""}`}
     >
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
           🎯 Smart Licensing
         </h3>
-        <p className="text-lg font-bold text-white">{title}</p>
+        <p className="text-sm font-bold text-white">{title}</p>
         {description && (
-          <p className="text-sm text-slate-300 mt-2">{description}</p>
+          <p className="text-xs text-slate-300 mt-2">{description}</p>
         )}
       </div>
 
       {/* Error State */}
       {isError && registerState.error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-sm text-red-300">
+        <div className="mb-6 p-4 bg-red-500/10 rounded-lg">
+          <p className="text-xs text-red-300">
             <span className="font-semibold">Error:</span> {registerState.error}
           </p>
         </div>
       )}
 
       {/* License Selection Section */}
-      <div className="mb-6 p-4 bg-slate-800/30 border border-slate-700/40 rounded-lg">
+      <div className="mb-6 p-4 bg-slate-800/30 rounded-lg">
         <div className="mb-3">
           <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-3">
             License Type
@@ -234,16 +234,16 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             <button
               onClick={() => setShowLicenseOptions(!showLicenseOptions)}
               disabled={isLoading}
-              className={`w-full flex items-center justify-between p-3 bg-slate-900/60 border border-slate-600/40 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50 ${
+              className={`w-full flex items-center justify-between p-3 bg-slate-900/60 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50 ${
                 isLoading
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:border-slate-500/60 hover:bg-slate-900/80"
+                  : "hover:bg-slate-900/80"
               }`}
             >
               <div className="text-left">
                 <div className="flex items-center gap-2">
                   <span>{selectedLicenseInfo?.icon}</span>
-                  <span className="font-semibold text-white">
+                  <span className="text-xs font-semibold text-white">
                     {selectedLicenseInfo?.name}
                   </span>
                   {selectedLicenseType === recommendedLicenseType && (
@@ -279,7 +279,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span>{license.icon}</span>
-                      <span className="font-semibold text-white text-sm">
+                      <span className="text-xs font-semibold text-white">
                         {license.name}
                       </span>
                       {license.key === recommendedLicenseType && (
@@ -298,7 +298,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
           </div>
 
           {/* Recommendation Reason */}
-          <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="mt-3 p-3 bg-blue-500/10 rounded-lg">
             <p className="text-xs text-blue-200">
               <span className="font-semibold">Why this license?</span>{" "}
               {recommendationReason}
@@ -309,8 +309,8 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* License Description */}
       {selectedLicenseInfo && (
-        <div className="mb-6 p-4 bg-slate-800/20 border border-slate-700/30 rounded-lg">
-          <p className="text-sm text-slate-300 leading-relaxed">
+        <div className="mb-6 p-4 bg-slate-800/20 rounded-lg">
+          <p className="text-xs text-slate-300 leading-relaxed">
             {selectedLicenseInfo.description}
           </p>
         </div>
@@ -331,7 +331,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             onChange={(e) => setMintingFee(e.target.value)}
             disabled={isLoading}
             placeholder="0"
-            className={`w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all ${
+            className={`w-full px-3 py-2 bg-slate-900/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all ${
               isLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />
@@ -352,7 +352,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             onChange={(e) => setRevShare(e.target.value)}
             disabled={isLoading}
             placeholder="0"
-            className={`w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all ${
+            className={`w-full px-3 py-2 bg-slate-900/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all ${
               isLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />
@@ -363,7 +363,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       {/* AI Training Checkbox */}
       <div className="mb-6">
         <label
-          className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg transition-all ${
+          className={`flex items-center gap-3 p-3 bg-slate-800/20 rounded-lg transition-all ${
             isLoading || isAiGeneratedGroup(group)
               ? "opacity-50 cursor-not-allowed"
               : "cursor-pointer hover:bg-slate-800/30"
@@ -381,7 +381,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             }`}
           />
           <div className="flex-1">
-            <span className="text-sm font-semibold text-slate-200">
+            <span className="text-xs font-semibold text-slate-200">
               Allow AI Training
             </span>
             {isAiGeneratedGroup(group) && (
@@ -395,10 +395,10 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* Loading Progress */}
       {isLoading && (
-        <div className="mb-6 p-4 bg-slate-800/30 border border-slate-700/40 rounded-lg">
+        <div className="mb-6 p-4 bg-slate-800/30 rounded-lg">
           <div className="flex items-center gap-3 mb-3">
             <Loader2 size={18} className="text-pink-500 animate-spin" />
-            <span className="text-sm font-semibold text-white capitalize">
+            <span className="text-xs font-semibold text-white capitalize">
               {registerState.status.replace("-", " ")}...
             </span>
           </div>
@@ -418,7 +418,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       <button
         onClick={handleRegister}
         disabled={isLoading}
-        className={`w-full px-6 py-3 font-semibold rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${
+        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${
           isLoading
             ? "bg-slate-700 cursor-not-allowed opacity-70 text-slate-300"
             : "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white hover:shadow-pink-500/25"
