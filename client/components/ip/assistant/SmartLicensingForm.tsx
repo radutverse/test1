@@ -223,7 +223,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       )}
 
       {/* License Selection Section */}
-      <div className="mb-6 p-4 bg-slate-800/30 border border-slate-700/40 rounded-lg">
+      <div className="mb-6 p-4 bg-slate-800/30 border border-white/20 rounded-lg">
         <div className="mb-3">
           <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-3">
             License Type
@@ -309,7 +309,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* License Description */}
       {selectedLicenseInfo && (
-        <div className="mb-6 p-4 bg-slate-800/20 border border-slate-700/30 rounded-lg">
+        <div className="mb-6 p-4 bg-slate-800/20 border border-white/20 rounded-lg">
           <p className="text-sm text-slate-300 leading-relaxed">
             {selectedLicenseInfo.description}
           </p>
@@ -363,7 +363,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       {/* AI Training Checkbox */}
       <div className="mb-6">
         <label
-          className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg transition-all ${
+          className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-white/20 rounded-lg transition-all ${
             isLoading || isAiGeneratedGroup(group)
               ? "opacity-50 cursor-not-allowed"
               : "cursor-pointer hover:bg-slate-800/30"
@@ -395,7 +395,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* Loading Progress */}
       {isLoading && (
-        <div className="mb-6 p-4 bg-slate-800/30 border border-slate-700/40 rounded-lg">
+        <div className="mb-6 p-4 bg-slate-800/30 border border-white/20 rounded-lg">
           <div className="flex items-center gap-3 mb-3">
             <Loader2 size={18} className="text-pink-500 animate-spin" />
             <span className="text-sm font-semibold text-white capitalize">
