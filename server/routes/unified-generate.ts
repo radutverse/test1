@@ -1,8 +1,29 @@
 import { RequestHandler } from "express";
 import OpenAI from "openai";
 import { FormData, Blob } from "formdata-node";
+import https from "https";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+// Fetch image from URL and convert to data URL
+async function fetchImageAsDataUrl(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(imageUrl, (response) => {
+      let data = Buffer.alloc(0);
+      response.on("data", (chunk) => {
+        data = Buffer.concat([data, chunk]);
+      });
+      response.on("end", () => {
+        const base64 = data.toString("base64");
+        const contentType = response.headers["content-type"] || "image/webp";
+        const dataUrl = `data:${contentType};base64,${base64}`;
+        resolve(dataUrl);
+      });
+    }).on("error", (err) => {
+      reject(err);
+    });
+  });
+}
 
 // Generate a hash-based color from the prompt
 function getColorFromPrompt(text: string): string {
