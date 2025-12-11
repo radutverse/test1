@@ -266,27 +266,75 @@ export function classifyImage(flags: ImageAnalysisFlags): GroupClassification {
 
 export function getLicenseSettings(group: GroupNumber): LicenseSettings {
   switch (group) {
-    // CAN REGISTER
-    case 4:
-    case 6:
-    case 12:
+    // CAN REGISTER - Group 1: AI Image without faces/brands
+    // Use Commercial Remix for best monetization
+    case 1:
       return {
         status: RegistrationStatus.CAN_REGISTER,
-        title: "Ready to Register",
+        title: "Ready to Register - Commercial Remix",
         description:
-          "This image meets the criteria for direct registration. No AI training is permitted with this license.",
+          "This AI-generated image is clean and safe. It will be registered with Commercial Remix license, allowing derivatives with revenue sharing.",
         buttonText: "Register Image",
         color: "green",
       };
+
+    // CAN REGISTER - Group 4: Famous Person Partial Face
+    // Use Commercial Use for controlled monetization
+    case 4:
+      return {
+        status: RegistrationStatus.CAN_REGISTER,
+        title: "Ready to Register - Commercial Use",
+        description:
+          "This image with partial face visibility will be registered with Commercial Use license. Derivatives not allowed.",
+        buttonText: "Register Image",
+        color: "green",
+      };
+
+    // CAN REGISTER - Group 6: Regular Person Partial Face
+    // Use Non-Commercial Social Remixing for privacy protection
+    case 6:
+      return {
+        status: RegistrationStatus.CAN_REGISTER,
+        title: "Ready to Register - Non-Commercial Social Remixing",
+        description:
+          "This image will be registered with Non-Commercial Social Remixing. Free for remixing, but no commercial use allowed.",
+        buttonText: "Register Image",
+        color: "green",
+      };
+
+    // CAN REGISTER - Group 12: AI Animation without brand/character
+    // Use Commercial Remix for best monetization
+    case 12:
+      return {
+        status: RegistrationStatus.CAN_REGISTER,
+        title: "Ready to Register - Commercial Remix",
+        description:
+          "This AI animation is clean and safe. It will be registered with Commercial Remix license.",
+        buttonText: "Register Image",
+        color: "green",
+      };
+
+    // CAN REGISTER - Group 9, 11, 14: Various types with manual AI training allowed
     case 9:
     case 11:
     case 14:
+      return {
+        status: RegistrationStatus.CAN_REGISTER,
+        title: "Ready to Register - Non-Commercial Social Remixing",
+        description:
+          "This image will be registered with Non-Commercial Social Remixing license. Manual AI training is permitted.",
+        buttonText: "Register Image",
+        color: "green",
+      };
+
+    // CAN REGISTER - Group 16: Photo without faces/brands
+    // Use Commercial Remix for best monetization
     case 16:
       return {
         status: RegistrationStatus.CAN_REGISTER,
-        title: "Ready to Register",
+        title: "Ready to Register - Commercial Remix",
         description:
-          "This image meets the criteria for direct registration. Manual AI training is permitted with this license.",
+          "This clean photograph is ready for Commercial Remix registration with derivative revenue sharing.",
         buttonText: "Register Image",
         color: "green",
       };
@@ -308,14 +356,13 @@ export function getLicenseSettings(group: GroupNumber): LicenseSettings {
       };
 
     // REQUIRES REVIEW
-    case 1:
     case 5:
     case 10:
       return {
         status: RegistrationStatus.REQUIRES_REVIEW,
         title: "Requires Review",
         description:
-          "This image requires manual review. AI-generated content or uncertain origins need verification, and images with identifiable faces require a model release or consent documentation.",
+          "This image requires manual review. Images with identifiable faces require a model release or consent documentation.",
         buttonText: "Start Review Process",
         color: "yellow",
       };
