@@ -85,14 +85,28 @@ export function useIPRegistrationAgent() {
       aiTrainingManual?: boolean,
       intent?: { title?: string; prompt?: string },
       ethereumProvider?: any,
+      licenseType?: string,
     ) => {
       try {
-        const licenseSettings = getLicenseSettingsByGroup(
+        let licenseSettings = getLicenseSettingsByGroup(
           group,
           aiTrainingManual,
           mintingFee,
           revShare,
         );
+
+        // If a specific license type is provided, use it instead
+        if (licenseType) {
+          const { getLicenseSettingsByType } = await import(
+            "@/lib/license/terms"
+          );
+          licenseSettings = getLicenseSettingsByType(
+            licenseType,
+            aiTrainingManual,
+            mintingFee,
+            revShare,
+          );
+        }
         if (requiresSelfieVerification(group)) {
           setRegisterState({
             status: "idle",
