@@ -234,10 +234,10 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             <button
               onClick={() => setShowLicenseOptions(!showLicenseOptions)}
               disabled={isLoading}
-              className={`w-full flex items-center justify-between p-3 bg-slate-900/60 border border-slate-600/40 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50 ${
+              className={`w-full flex items-center justify-between p-3 bg-slate-900/60 border border-white/20 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50 ${
                 isLoading
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:border-slate-500/60 hover:bg-slate-900/80"
+                  : "hover:border-white/30 hover:bg-slate-900/80"
               }`}
             >
               <div className="text-left">
