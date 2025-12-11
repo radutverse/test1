@@ -1577,12 +1577,12 @@ const IpAssistant = () => {
                                 if (desc.length > 120)
                                   desc = desc.slice(0, 119) + "…";
 
-                                // Remove loading message and show register form
+                                // Remove loading message and show smart licensing form
                                 setMessages((prev) =>
                                   prev.filter((m) => m.id !== loadingMsgId),
                                 );
                                 pushMessage({
-                                  from: "register",
+                                  from: "smart-licensing",
                                   group: groupNum,
                                   title,
                                   description: desc,
