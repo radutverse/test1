@@ -306,12 +306,18 @@ export const unifiedGenerateImageWithWatermark: RequestHandler = async (
     let imageUrl: string;
 
     if (mode === "demo") {
-      // Demo mode: return realistic dummy SVG
+      // Demo mode: return custom image
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulate delay
-      const svgString = generateDemoSvgImage(prompt);
-      const base64 = Buffer.from(svgString).toString("base64");
-      imageUrl = `data:image/svg+xml;base64,${base64}`;
-      console.log("✅ Demo image generated successfully");
+      try {
+        const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+        imageUrl = await fetchImageAsDataUrl(customImageUrl);
+        console.log("✅ Demo image generated successfully");
+      } catch (error) {
+        console.warn("Failed to fetch custom image, falling back to SVG", error);
+        const svgString = generateDemoSvgImage(prompt);
+        const base64 = Buffer.from(svgString).toString("base64");
+        imageUrl = `data:image/svg+xml;base64,${base64}`;
+      }
     } else {
       // Production mode: use OpenAI
       const result = await client.images.generate({
