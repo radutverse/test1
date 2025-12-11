@@ -72,7 +72,6 @@ async function fetchParentIpDetails(
 }
 
 export async function createServer() {
-
   const app = express();
 
   const { handleCheckImageSimilarity } = await import(
@@ -211,7 +210,6 @@ export async function createServer() {
 
   // Get typing suggestions endpoint (POST /api/get-suggestions)
   app.post("/api/get-suggestions", handleGetSuggestions);
-
 
   // Wallet creations endpoints (only wallet mode supported)
   app.get("/api/wallet-creations/:walletAddress", handleGetWalletCreations);

@@ -1413,7 +1413,6 @@ const IpAssistant = () => {
     />
   );
 
-
   return (
     <DashboardLayout
       title="IP Assistant"

@@ -174,9 +174,11 @@ export function useIPRegistrationAgent() {
         // Get creator address from wallet
         let creatorAddr: string | undefined;
         const provider = ethereumProvider || (globalThis as any).ethereum;
-        
+
         if (!provider) {
-          throw new Error("No wallet provider available. Please connect your wallet.");
+          throw new Error(
+            "No wallet provider available. Please connect your wallet.",
+          );
         }
 
         try {
@@ -188,11 +190,15 @@ export function useIPRegistrationAgent() {
             creatorAddr = String(addrs[0]);
           }
         } catch (walletError) {
-          throw new Error("Failed to get wallet address. Please ensure your wallet is connected.");
+          throw new Error(
+            "Failed to get wallet address. Please ensure your wallet is connected.",
+          );
         }
 
         if (!creatorAddr) {
-          throw new Error("Could not determine wallet address. Please connect your wallet.");
+          throw new Error(
+            "Could not determine wallet address. Please connect your wallet.",
+          );
         }
 
         const ipMetadata = {
@@ -236,7 +242,7 @@ export function useIPRegistrationAgent() {
         const ipMetadataHash = keccakOfJson(ipMetadata);
 
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
-        
+
         // Use the same SPG collection as before (previously used by guest)
         const spg = (import.meta as any).env?.VITE_PUBLIC_SPG_COLLECTION;
         if (!spg) {
@@ -244,7 +250,7 @@ export function useIPRegistrationAgent() {
             "SPG collection env not set (VITE_PUBLIC_SPG_COLLECTION)",
           );
         }
-        
+
         const rpcUrl = (import.meta as any).env?.VITE_PUBLIC_STORY_RPC;
         if (!rpcUrl) {
           throw new Error("RPC URL not set (VITE_PUBLIC_STORY_RPC)");
@@ -268,7 +274,8 @@ export function useIPRegistrationAgent() {
           const chainIdHex: string = await provider.request({
             method: "eth_chainId",
           });
-          if (chainIdHex?.toLowerCase() !== "0x5ea") { // 0x5ea = 1514 (Story Mainnet)
+          if (chainIdHex?.toLowerCase() !== "0x5ea") {
+            // 0x5ea = 1514 (Story Mainnet)
             try {
               await provider.request({
                 method: "wallet_switchEthereumChain",
@@ -299,7 +306,10 @@ export function useIPRegistrationAgent() {
                   params: [{ chainId: "0x5ea" }],
                 });
               } catch (addError) {
-                console.warn("Could not add/switch to Story Network:", addError);
+                console.warn(
+                  "Could not add/switch to Story Network:",
+                  addError,
+                );
               }
             }
           }
@@ -312,7 +322,7 @@ export function useIPRegistrationAgent() {
           transport: custom(provider),
         });
         const [addr] = await walletClient.getAddresses();
-        
+
         if (!addr) {
           throw new Error("No wallet address available after setup");
         }
@@ -344,7 +354,7 @@ export function useIPRegistrationAgent() {
           ipId: result?.ipId,
           txHash: result?.txHash || result?.transactionHash,
         });
-        
+
         return {
           success: true,
           ipId: result?.ipId,
@@ -354,25 +364,32 @@ export function useIPRegistrationAgent() {
         } as const;
       } catch (error: any) {
         const errorMessage = error?.message || String(error);
-        
+
         // Provide user-friendly error messages
         let userFriendlyError = errorMessage;
-        if (errorMessage.includes("User rejected") || errorMessage.includes("rejected")) {
-          userFriendlyError = "Transaction was rejected. Please try again if you want to proceed.";
+        if (
+          errorMessage.includes("User rejected") ||
+          errorMessage.includes("rejected")
+        ) {
+          userFriendlyError =
+            "Transaction was rejected. Please try again if you want to proceed.";
         } else if (errorMessage.includes("insufficient funds")) {
-          userFriendlyError = "Insufficient funds for gas fees. Please add more IP tokens to your wallet.";
+          userFriendlyError =
+            "Insufficient funds for gas fees. Please add more IP tokens to your wallet.";
         } else if (errorMessage.includes("wallet")) {
-          userFriendlyError = "Wallet connection issue. Please ensure your wallet is connected and unlocked.";
+          userFriendlyError =
+            "Wallet connection issue. Please ensure your wallet is connected and unlocked.";
         } else if (errorMessage.includes("CallerNotAuthorizedToMint")) {
-          userFriendlyError = "Your wallet is not authorized to mint on this contract. Please contact admin to whitelist your address.";
+          userFriendlyError =
+            "Your wallet is not authorized to mint on this contract. Please contact admin to whitelist your address.";
         }
-        
-        setRegisterState({ 
-          status: "error", 
-          progress: 0, 
-          error: userFriendlyError 
+
+        setRegisterState({
+          status: "error",
+          progress: 0,
+          error: userFriendlyError,
         });
-        
+
         return {
           success: false,
           error: userFriendlyError,
