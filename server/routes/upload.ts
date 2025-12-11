@@ -1,4 +1,5 @@
 import multer from "multer";
+import crypto from "crypto";
 import { analyzeImageWithOpenAI } from "../utils/image-analysis.js";
 import { classifyImage, getLicenseSettings } from "../../shared/image-analysis.js";
 
@@ -8,7 +9,9 @@ const upload = multer({
 });
 
 // Idempotency cache - in production, use Redis or similar
+// Using both Idempotency-Key (request level) and content hash (image level) for consistency
 const IDP_STORE = new Map<string, { status: number; body: any; ts: number }>();
+const HASH_STORE = new Map<string, { status: number; body: any; ts: number }>();
 
 export const handleUpload: any = [
   upload.single("image"),
@@ -34,6 +37,21 @@ export const handleUpload: any = [
         return res
           .status(400)
           .json({ ok: false, error: "no_file", message: "No file uploaded" });
+
+      // Create content hash for consistent caching across requests
+      const contentHash = crypto.createHash("sha256").update(f.buffer).digest("hex");
+
+      // Check if we've already analyzed this exact image (by content hash)
+      if (HASH_STORE.has(contentHash)) {
+        const cached = HASH_STORE.get(contentHash)!;
+        // Use hash-based cache with longer TTL (24 hours instead of 60s)
+        if (Date.now() - cached.ts < 24 * 60 * 60 * 1000) {
+          res.status(cached.status).json({ ok: true, ...cached.body });
+          return;
+        } else {
+          HASH_STORE.delete(contentHash);
+        }
+      }
 
       const base64 = f.buffer.toString("base64");
 
@@ -71,6 +89,9 @@ export const handleUpload: any = [
       if (idempotencyKey) {
         IDP_STORE.set(idempotencyKey, { status: 200, body, ts: Date.now() });
       }
+
+      // Also cache by content hash for image-level consistency
+      HASH_STORE.set(contentHash, { status: 200, body, ts: Date.now() });
 
       return res.status(200).json(body);
     } catch (err) {
