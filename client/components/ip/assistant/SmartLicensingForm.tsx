@@ -298,7 +298,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
           </div>
 
           {/* Recommendation Reason */}
-          <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="mt-3 p-3 bg-blue-500/10 border border-white/20 rounded-lg">
             <p className="text-xs text-blue-200">
               <span className="font-semibold">Why this license?</span>{" "}
               {recommendationReason}
