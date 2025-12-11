@@ -2030,6 +2030,67 @@ const IpAssistant = () => {
               );
             }
 
+            if (msg.from === "smart-licensing") {
+              const licensingMsg = msg as any;
+              const ctxKey = licensingMsg.ctxKey as string | undefined;
+              const ctx = ctxKey ? analysisContextsRef.current.get(ctxKey) : null;
+              const imageUrl = ctx?.blob
+                ? URL.createObjectURL(ctx.blob)
+                : undefined;
+
+              return (
+                <motion.div
+                  key={`smart-licensing-${index}`}
+                  {...getBubbleMotionProps(index)}
+                  className="flex items-center justify-center mb-3 gap-2 px-1 md:px-2 last:mb-1 w-full"
+                >
+                  <SmartLicensingForm
+                    group={licensingMsg.group}
+                    title={licensingMsg.title}
+                    description={licensingMsg.description}
+                    imageUrl={imageUrl}
+                    isLoading={registerState.status === "minting"}
+                    onRegister={async (config) => {
+                      if (!ctxKey) {
+                        alert("No analysis context found.");
+                        return;
+                      }
+                      const ctx = analysisContextsRef.current.get(ctxKey);
+                      const blob = ctx?.blob;
+                      if (!blob) {
+                        alert("No uploaded image to register.");
+                        return;
+                      }
+
+                      const file = new File(
+                        [blob],
+                        ctx?.name || `image-${Date.now()}.jpg`,
+                        { type: blob.type || "image/jpeg" },
+                      );
+
+                      let ethProvider: any = (window as any).ethereum;
+                      try {
+                        if (wallets && wallets[0]?.getEthereumProvider) {
+                          ethProvider =
+                            await wallets[0].getEthereumProvider();
+                        }
+                      } catch {}
+
+                      await executeRegister(
+                        licensingMsg.group,
+                        file,
+                        config.mintingFee,
+                        config.revShare,
+                        config.aiTraining,
+                        { title: licensingMsg.title, prompt: licensingMsg.description },
+                        ethProvider,
+                      );
+                    }}
+                  />
+                </motion.div>
+              );
+            }
+
             if (msg.from === "ip-check") {
               const ipCheckMsg = msg as any;
               const isLoading =
