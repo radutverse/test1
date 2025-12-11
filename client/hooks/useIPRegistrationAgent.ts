@@ -177,7 +177,6 @@ export function useIPRegistrationAgent() {
                 ? "AI Generated"
                 : "Human Generated",
             },
-            { trait_type: "License", value: licenseSettings.pilType },
           ],
         };
         const nftMetaUpload = await uploadJSON(nftMetadata);
