@@ -12,8 +12,8 @@ function getColorFromPrompt(text: string): string {
   return `hsl(${hue}, 70%, 50%)`;
 }
 
-// Fetch and convert image URL to base64
-async function fetchImageAsBase64(imageUrl: string): Promise<string> {
+// Fetch image from URL and convert to data URL
+async function fetchImageAsDataUrl(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     https.get(imageUrl, (response) => {
       let data = Buffer.alloc(0);
@@ -22,7 +22,9 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string> {
       });
       response.on("end", () => {
         const base64 = data.toString("base64");
-        resolve(base64);
+        const contentType = response.headers["content-type"] || "image/webp";
+        const dataUrl = `data:${contentType};base64,${base64}`;
+        resolve(dataUrl);
       });
     }).on("error", (err) => {
       reject(err);
@@ -30,23 +32,16 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string> {
   });
 }
 
-// Generate a demo image by returning the custom image with watermark text overlay
+// Generate demo image - return custom image as data URL
 async function generateDemoSvgImage(prompt: string): Promise<string> {
   try {
-    // Fetch the custom image
+    // Fetch the custom image and return as data URL
     const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
-    const base64Image = await fetchImageAsBase64(customImageUrl);
-
-    const svg = `
-      <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-        <image width="1024" height="1024" href="data:image/webp;base64,${base64Image}" preserveAspectRatio="xMidYMid slice"/>
-      </svg>
-    `;
-
-    return svg;
+    const dataUrl = await fetchImageAsDataUrl(customImageUrl);
+    return dataUrl;
   } catch (error) {
     console.warn("Failed to fetch custom image, falling back to default", error);
-    // Fallback to a simple colored background if fetch fails
+    // Fallback - generate colored background
     const color = getColorFromPrompt(prompt);
     const svg = `
       <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
