@@ -7,12 +7,17 @@ export const GROUPS = {
   DIRECT_REGISTER_MANUAL_AI: [9, 11, 14],
 };
 
+/**
+ * Returns Commercial Remix license settings for all registrable groups.
+ * Only Commercial Remix license is supported.
+ */
 export function getLicenseSettingsByGroup(
   group: number,
   aiTrainingManual?: boolean,
   mintingFee?: number,
   revShare?: number,
 ): LicenseSettings | null {
+  // Commercial Remix settings for all directly registrable groups
   if (GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group)) {
     return {
       ...DEFAULT_LICENSE_SETTINGS,
@@ -33,6 +38,7 @@ export function getLicenseSettingsByGroup(
     };
   }
 
+  // Groups requiring selfie verification or review cannot register yet
   if (
     GROUPS.SELFIE_REQUIRED.includes(group) ||
     GROUPS.SUBMIT_REVIEW.includes(group)
