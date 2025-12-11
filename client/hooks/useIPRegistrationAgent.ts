@@ -7,7 +7,6 @@ import {
   toIpfsUri,
   toHttps,
 } from "@/lib/utils/ipfs";
-import { calculateFileHash } from "@/lib/utils/hash";
 import {
   StoryClient,
   PILFlavor,
