@@ -24,8 +24,6 @@ import { useIpImagineTour } from "@/hooks/useIpImagineTour";
 import { truncateAddress } from "@/lib/ip-assistant/utils";
 import { getImageVisionDescription } from "@/lib/utils/vision-api";
 import { compressAndEnsureSize } from "@/lib/utils/image";
-import { calculateBlobHash } from "@/lib/utils/hash";
-import { calculatePerceptualHash } from "@/lib/utils/perceptual-hash";
 import { CreationContext } from "@/context/CreationContext";
 
 const IpImagine = () => {
