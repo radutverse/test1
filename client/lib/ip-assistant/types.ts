@@ -49,6 +49,16 @@ export type Message =
     }
   | {
       id?: string;
+      from: "smart-licensing";
+      group: number;
+      title: string;
+      description: string;
+      imageUrl?: string;
+      ctxKey: string;
+      ts?: string;
+    }
+  | {
+      id?: string;
       from: "ip-check";
       status: "pending" | "loading" | "complete";
       address?: string;
