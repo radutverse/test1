@@ -106,6 +106,7 @@ export const handleUpload: any = [
           req.get("idempotency-key")) as string;
         IDP_STORE.set(key, { status: 500, body, ts: Date.now() });
       }
+      // Don't cache errors by content hash - allow retry on next request
       return res.status(500).json(body);
     }
   }) as any,
