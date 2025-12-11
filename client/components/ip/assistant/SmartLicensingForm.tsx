@@ -315,8 +315,11 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             step="0.1"
             value={mintingFee}
             onChange={(e) => setMintingFee(e.target.value)}
+            disabled={isLoading}
             placeholder="0"
-            className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all"
+            className={`w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all ${
+              isLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           />
           <p className="text-xs text-slate-500 mt-1">Leave empty for free</p>
         </div>
@@ -333,8 +336,11 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             step="1"
             value={revShare}
             onChange={(e) => setRevShare(e.target.value)}
+            disabled={isLoading}
             placeholder="0"
-            className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all"
+            className={`w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500/50 transition-all ${
+              isLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           />
           <p className="text-xs text-slate-500 mt-1">% of derivative revenue</p>
         </div>
@@ -342,12 +348,17 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* AI Training Checkbox */}
       <div className="mb-6">
-        <label className="flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg cursor-pointer hover:bg-slate-800/30 transition-all">
+        <label className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg transition-all ${
+          isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-slate-800/30"
+        }`}>
           <input
             type="checkbox"
             checked={aiTraining}
             onChange={(e) => setAiTraining(e.target.checked)}
-            className="w-5 h-5 rounded border-slate-600 bg-slate-900/60 cursor-pointer accent-pink-500"
+            disabled={isLoading}
+            className={`w-5 h-5 rounded border-slate-600 bg-slate-900/60 accent-pink-500 ${
+              isLoading ? "cursor-not-allowed" : "cursor-pointer"
+            }`}
           />
           <span className="text-sm font-semibold text-slate-200">
             Allow AI Training
@@ -355,13 +366,45 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
         </label>
       </div>
 
+      {/* Loading Progress */}
+      {isLoading && (
+        <div className="mb-6 p-4 bg-slate-800/30 border border-slate-700/40 rounded-lg">
+          <div className="flex items-center gap-3 mb-3">
+            <Loader2 size={18} className="text-pink-500 animate-spin" />
+            <span className="text-sm font-semibold text-white capitalize">
+              {registerState.status.replace("-", " ")}...
+            </span>
+          </div>
+          <div className="w-full bg-slate-900/60 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-pink-500 to-pink-600 h-full transition-all duration-300"
+              style={{ width: `${registerState.progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            {registerState.progress}% - Please keep this window open
+          </p>
+        </div>
+      )}
+
       {/* Register Button */}
       <button
         onClick={handleRegister}
         disabled={isLoading}
-        className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-pink-500/25"
+        className={`w-full px-6 py-3 font-semibold rounded-lg transition-all duration-200 shadow-lg flex items-center justify-center gap-2 ${
+          isLoading
+            ? "bg-slate-700 cursor-not-allowed opacity-70 text-slate-300"
+            : "bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white hover:shadow-pink-500/25"
+        }`}
       >
-        {isLoading ? "Registering..." : "Register IP"}
+        {isLoading ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Registering...
+          </>
+        ) : (
+          "Register IP"
+        )}
       </button>
     </div>
   );
