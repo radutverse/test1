@@ -5,6 +5,7 @@ import {
   LICENSE_TYPES,
   determineLicenseType,
 } from "@/lib/license/license-types";
+import { isAiGeneratedGroup } from "@/lib/groupLicense";
 
 export type RegisterState = {
   status:
@@ -114,7 +115,9 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   );
   const [mintingFee, setMintingFee] = useState<string>("");
   const [revShare, setRevShare] = useState<string>("");
-  const [aiTraining, setAiTraining] = useState(true);
+  const [aiTraining, setAiTraining] = useState(
+    !isAiGeneratedGroup(group)
+  );
   const [showLicenseOptions, setShowLicenseOptions] = useState(false);
 
   const selectedLicenseInfo = LICENSE_TYPES[selectedLicenseType];
