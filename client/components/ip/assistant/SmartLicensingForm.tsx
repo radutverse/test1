@@ -115,9 +115,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   );
   const [mintingFee, setMintingFee] = useState<string>("");
   const [revShare, setRevShare] = useState<string>("");
-  const [aiTraining, setAiTraining] = useState(
-    !isAiGeneratedGroup(group)
-  );
+  const [aiTraining, setAiTraining] = useState(!isAiGeneratedGroup(group));
   const [showLicenseOptions, setShowLicenseOptions] = useState(false);
 
   const selectedLicenseInfo = LICENSE_TYPES[selectedLicenseType];
@@ -377,7 +375,9 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
             onChange={(e) => setAiTraining(e.target.checked)}
             disabled={isLoading || isAiGeneratedGroup(group)}
             className={`w-5 h-5 rounded border-slate-600 bg-slate-900/60 accent-pink-500 ${
-              isLoading || isAiGeneratedGroup(group) ? "cursor-not-allowed" : "cursor-pointer"
+              isLoading || isAiGeneratedGroup(group)
+                ? "cursor-not-allowed"
+                : "cursor-pointer"
             }`}
           />
           <div className="flex-1">

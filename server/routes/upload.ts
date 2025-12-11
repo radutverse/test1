@@ -1,7 +1,10 @@
 import multer from "multer";
 import crypto from "crypto";
 import { analyzeImageWithOpenAI } from "../utils/image-analysis.js";
-import { classifyImage, getLicenseSettings } from "../../shared/image-analysis.js";
+import {
+  classifyImage,
+  getLicenseSettings,
+} from "../../shared/image-analysis.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -39,7 +42,10 @@ export const handleUpload: any = [
           .json({ ok: false, error: "no_file", message: "No file uploaded" });
 
       // Create content hash for consistent caching across requests
-      const contentHash = crypto.createHash("sha256").update(f.buffer).digest("hex");
+      const contentHash = crypto
+        .createHash("sha256")
+        .update(f.buffer)
+        .digest("hex");
 
       // Check if we've already analyzed this exact image (by content hash)
       if (HASH_STORE.has(contentHash)) {
