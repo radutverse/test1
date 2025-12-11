@@ -70,7 +70,11 @@ export function determineLicenseType(license: any): LicenseTypeInfo | null {
   const defaultMintingFee = Number(terms.defaultMintingFee ?? 0);
 
   // Commercial Remix: Derivatives allowed + Commercial use + (Fee OR RevShare)
-  if (derivativesAllowed && commercialUse && (defaultMintingFee > 0 || commercialRevShare > 0)) {
+  if (
+    derivativesAllowed &&
+    commercialUse &&
+    (defaultMintingFee > 0 || commercialRevShare > 0)
+  ) {
     return LICENSE_TYPES["commercial-remix"];
   }
 

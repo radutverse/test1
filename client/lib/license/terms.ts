@@ -1,5 +1,8 @@
 export type LicenseSettings = {
-  pilType: "non_commercial_social_remix" | "commercial_use" | "commercial_remix";
+  pilType:
+    | "non_commercial_social_remix"
+    | "commercial_use"
+    | "commercial_remix";
   aiLearning: boolean;
   licensePrice: number;
   revShare: number;

@@ -1,4 +1,8 @@
-import { LicenseSettings, DEFAULT_LICENSE_SETTINGS, getLicenseSettingsByType } from "@/lib/license/terms";
+import {
+  LicenseSettings,
+  DEFAULT_LICENSE_SETTINGS,
+  getLicenseSettingsByType,
+} from "@/lib/license/terms";
 import { determineLicenseTypeByGroup } from "@/lib/license/license-types";
 
 export const GROUPS = {
@@ -19,14 +23,19 @@ export function getLicenseSettingsByGroup(
   revShare?: number,
 ): LicenseSettings | null {
   // Groups that can directly register
-  if (GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) || GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)) {
+  if (
+    GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) ||
+    GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)
+  ) {
     // Determine the best license type for this group
     const licenseType = determineLicenseTypeByGroup(group);
 
     // Get license settings based on the determined type
     return getLicenseSettingsByType(
       licenseType,
-      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group) ? (aiTrainingManual ?? true) : false,
+      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)
+        ? (aiTrainingManual ?? true)
+        : false,
       mintingFee,
       revShare,
     );
