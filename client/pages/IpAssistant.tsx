@@ -12,6 +12,7 @@ import { WhitelistDetailsModal } from "@/components/ip/assistant/WhitelistDetail
 import { WhitelistMonitor } from "@/components/ip/assistant/WhitelistMonitor";
 import { WelcomeScreen } from "@/components/ip/assistant/WelcomeScreen";
 import { ResultDisplay } from "@/components/ip/assistant/ResultDisplay";
+import { SmartLicensingForm } from "@/components/ip/assistant/SmartLicensingForm";
 import {
   PopularIPGrid,
   AddRemixImageModal,
