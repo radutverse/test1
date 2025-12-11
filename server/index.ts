@@ -14,14 +14,6 @@ import { handleGetSuggestions } from "./routes/get-suggestions.js";
 import { handleResolveIpName } from "./routes/resolve-ip-name.js";
 import { handleResolveOwnerDomain } from "./routes/resolve-owner-domain.js";
 import {
-  handleAddRemixHash,
-  handleCheckRemixHash,
-  handleGetRemixHashes,
-  handleClearRemixHashes,
-  handleGetRemixHashesFull,
-  handleDeleteRemixHash,
-} from "./routes/remix-hash-whitelist.js";
-import {
   handleGetWalletCreations,
   handleAddWalletCreation,
   handleDeleteWalletCreation,
