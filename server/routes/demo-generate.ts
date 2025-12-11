@@ -1,4 +1,5 @@
 import { RequestHandler } from "express";
+import https from "https";
 
 // Generate a hash-based color from the prompt
 function getColorFromPrompt(text: string): string {
@@ -11,18 +12,52 @@ function getColorFromPrompt(text: string): string {
   return `hsl(${hue}, 70%, 50%)`;
 }
 
-// Generate a realistic-looking dummy SVG image based on prompt
-function generateDemoSvgImage(prompt: string): string {
-  // Use the user's custom image as the base
-  const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+// Fetch and convert image URL to base64
+async function fetchImageAsBase64(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    https.get(imageUrl, (response) => {
+      let data = Buffer.alloc(0);
+      response.on("data", (chunk) => {
+        data = Buffer.concat([data, chunk]);
+      });
+      response.on("end", () => {
+        const base64 = data.toString("base64");
+        resolve(base64);
+      });
+    }).on("error", (err) => {
+      reject(err);
+    });
+  });
+}
 
-  const svg = `
-    <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-      <image width="1024" height="1024" href="${customImageUrl}" preserveAspectRatio="xMidYMid slice"/>
-    </svg>
-  `;
+// Generate a demo image by returning the custom image with watermark text overlay
+async function generateDemoSvgImage(prompt: string): Promise<string> {
+  try {
+    // Fetch the custom image
+    const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
+    const base64Image = await fetchImageAsBase64(customImageUrl);
 
-  return svg;
+    const svg = `
+      <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+        <image width="1024" height="1024" href="data:image/webp;base64,${base64Image}" preserveAspectRatio="xMidYMid slice"/>
+      </svg>
+    `;
+
+    return svg;
+  } catch (error) {
+    console.warn("Failed to fetch custom image, falling back to default", error);
+    // Fallback to a simple colored background if fetch fails
+    const color = getColorFromPrompt(prompt);
+    const svg = `
+      <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1024" height="1024" fill="${color}"/>
+        <text x="512" y="512" font-size="48" font-weight="bold" text-anchor="middle" fill="white" opacity="0.7">
+          Custom Image
+        </text>
+      </svg>
+    `;
+    return svg;
+  }
 }
 
 // Convert HSL to RGB for contrast calculation
