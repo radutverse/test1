@@ -17,7 +17,7 @@ export function getLicenseSettingsByGroup(
   group: number,
   aiTrainingManual?: boolean,
   mintingFee?: number,
-  revShare?: number
+  revShare?: number,
 ): LicenseSettings | null {
   if (
     GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) ||
@@ -26,9 +26,11 @@ export function getLicenseSettingsByGroup(
     const licenseType = determineLicenseTypeByGroup(group);
     return getLicenseSettingsByType(
       licenseType,
-      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group) ? (aiTrainingManual ?? true) : false,
+      GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group)
+        ? (aiTrainingManual ?? true)
+        : false,
       mintingFee,
-      revShare
+      revShare,
     );
   }
   return null;
@@ -39,14 +41,23 @@ export function getLicenseTermsByGroup(
   group: number,
   aiTrainingManual?: boolean,
   mintingFee?: number,
-  revShare?: number
+  revShare?: number,
 ): LicenseTerms | null {
-  const settings = getLicenseSettingsByGroup(group, aiTrainingManual, mintingFee, revShare);
+  const settings = getLicenseSettingsByGroup(
+    group,
+    aiTrainingManual,
+    mintingFee,
+    revShare,
+  );
   return settings ? toLicenseTerms(settings) : null;
 }
 
-export const requiresSelfieVerification = (group: number) => GROUPS.SELFIE_REQUIRED.includes(group);
-export const requiresSubmitReview = (group: number) => GROUPS.SUBMIT_REVIEW.includes(group);
-export const isAiGeneratedGroup = (group: number) => [1, 2, 3, 4, 5, 6, 12, 13].includes(group);
+export const requiresSelfieVerification = (group: number) =>
+  GROUPS.SELFIE_REQUIRED.includes(group);
+export const requiresSubmitReview = (group: number) =>
+  GROUPS.SUBMIT_REVIEW.includes(group);
+export const isAiGeneratedGroup = (group: number) =>
+  [1, 2, 3, 4, 5, 6, 12, 13].includes(group);
 export const canDirectRegister = (group: number) =>
-  GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) || GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group);
+  GROUPS.DIRECT_REGISTER_FIXED_AI.includes(group) ||
+  GROUPS.DIRECT_REGISTER_MANUAL_AI.includes(group);

@@ -20,7 +20,15 @@ import { sha256HexOfFile, keccakOfJson } from "@/lib/utils/crypto";
 import { compressAndEnsureSize } from "@/lib/utils/image";
 
 export type RegisterState = {
-  status: "idle" | "compressing" | "uploading-image" | "creating-metadata" | "uploading-metadata" | "minting" | "success" | "error";
+  status:
+    | "idle"
+    | "compressing"
+    | "uploading-image"
+    | "creating-metadata"
+    | "uploading-metadata"
+    | "minting"
+    | "success"
+    | "error";
   progress: number;
   error: any;
   ipId?: string;
@@ -43,16 +51,24 @@ export function useIPRegistrationAgent() {
       aiTrainingManual?: boolean,
       intent?: { title?: string; prompt?: string },
       ethereumProvider?: any,
-      licenseType?: string
+      licenseType?: string,
     ) => {
       try {
         // Validasi
         if (requiresSelfieVerification(group)) {
-          setRegisterState({ status: "idle", progress: 0, error: "Selfie verification required." });
+          setRegisterState({
+            status: "idle",
+            progress: 0,
+            error: "Selfie verification required.",
+          });
           return { success: false, reason: "selfie_required" } as const;
         }
         if (requiresSubmitReview(group)) {
-          setRegisterState({ status: "idle", progress: 0, error: "Submit review required." });
+          setRegisterState({
+            status: "idle",
+            progress: 0,
+            error: "Submit review required.",
+          });
           return { success: false, reason: "submit_review" } as const;
         }
         if (!canDirectRegister(group)) {
@@ -61,29 +77,52 @@ export function useIPRegistrationAgent() {
 
         // Dapatkan license settings
         const licenseSettings = licenseType
-          ? getLicenseSettingsByType(licenseType, aiTrainingManual, mintingFee, revShare)
-          : getLicenseSettingsByGroup(group, aiTrainingManual, mintingFee, revShare);
+          ? getLicenseSettingsByType(
+              licenseType,
+              aiTrainingManual,
+              mintingFee,
+              revShare,
+            )
+          : getLicenseSettingsByGroup(
+              group,
+              aiTrainingManual,
+              mintingFee,
+              revShare,
+            );
 
-        if (!licenseSettings) throw new Error("Cannot determine license settings");
+        if (!licenseSettings)
+          throw new Error("Cannot determine license settings");
 
         // Compress image
         setRegisterState({ status: "compressing", progress: 10, error: null });
         const compressedBlob = await compressAndEnsureSize(file, 1024 * 1024);
-        const compressedFile = new File([compressedBlob], file.name, { type: "image/jpeg" });
+        const compressedFile = new File([compressedBlob], file.name, {
+          type: "image/jpeg",
+        });
 
         // Upload image
-        setRegisterState((p) => ({ ...p, status: "uploading-image", progress: 25 }));
+        setRegisterState((p) => ({
+          ...p,
+          status: "uploading-image",
+          progress: 25,
+        }));
         const fileUpload = await uploadFile(compressedFile);
         const imageCid = extractCid(fileUpload.cid || fileUpload.url);
         const imageGateway = fileUpload.https || toHttps(imageCid);
         const imageHash = await sha256HexOfFile(compressedFile);
 
         // Create metadata
-        setRegisterState((p) => ({ ...p, status: "creating-metadata", progress: 50 }));
+        setRegisterState((p) => ({
+          ...p,
+          status: "creating-metadata",
+          progress: 50,
+        }));
         const provider = ethereumProvider || (globalThis as any).ethereum;
         if (!provider) throw new Error("No wallet provider available.");
 
-        const walletClient = createWalletClient({ transport: custom(provider) });
+        const walletClient = createWalletClient({
+          transport: custom(provider),
+        });
         const [creatorAddr] = await walletClient.getAddresses();
         if (!creatorAddr) throw new Error("Could not get wallet address.");
 
@@ -96,15 +135,30 @@ export function useIPRegistrationAgent() {
           mediaUrl: imageGateway,
           mediaHash: imageHash,
           mediaType: compressedFile.type || "image/jpeg",
-          creators: [{ name: creatorAddr, address: creatorAddr, contributionPercent: 100 }],
+          creators: [
+            {
+              name: creatorAddr,
+              address: creatorAddr,
+              contributionPercent: 100,
+            },
+          ],
           attributes: [
-            { trait_type: "Status", value: isAiGeneratedGroup(group) ? "AI Generated" : "Human Generated" },
+            {
+              trait_type: "Status",
+              value: isAiGeneratedGroup(group)
+                ? "AI Generated"
+                : "Human Generated",
+            },
             { trait_type: "License", value: licenseSettings.pilType },
           ],
         };
 
         // Upload metadata
-        setRegisterState((p) => ({ ...p, status: "uploading-metadata", progress: 60 }));
+        setRegisterState((p) => ({
+          ...p,
+          status: "uploading-metadata",
+          progress: 60,
+        }));
         const ipMetaUpload = await uploadJSON(ipMetadata);
         const ipMetaCid = extractCid(ipMetaUpload.cid || ipMetaUpload.url);
         const ipMetadataURI = toIpfsUri(ipMetaCid);
@@ -126,7 +180,8 @@ export function useIPRegistrationAgent() {
         const result = await story.ipAsset.registerIpAsset({
           nft: {
             type: "mint",
-            spgNftContract: import.meta.env.VITE_PUBLIC_SPG_COLLECTION_USERS as `0x${string}`,
+            spgNftContract: import.meta.env
+              .VITE_PUBLIC_SPG_COLLECTION_USERS as `0x${string}`,
           },
           licenseTermsData: [{ terms: licenseTerms }],
           ipMetadata: {
@@ -157,7 +212,7 @@ export function useIPRegistrationAgent() {
         return { success: false, error: msg };
       }
     },
-    []
+    [],
   );
 
   const resetRegister = useCallback(() => {
@@ -182,6 +237,7 @@ function formatError(error: any): string {
   const msg = error?.message || String(error);
   if (msg.includes("rejected")) return "Transaction rejected by user.";
   if (msg.includes("insufficient funds")) return "Insufficient funds for gas.";
-  if (msg.includes("CallerNotAuthorizedToMint")) return "Wallet not authorized to mint.";
+  if (msg.includes("CallerNotAuthorizedToMint"))
+    return "Wallet not authorized to mint.";
   return msg;
 }

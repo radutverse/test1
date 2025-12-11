@@ -7,7 +7,15 @@ import {
 } from "@/lib/license/license-types";
 
 export type RegisterState = {
-  status: "idle" | "compressing" | "uploading-image" | "creating-metadata" | "uploading-metadata" | "minting" | "success" | "error";
+  status:
+    | "idle"
+    | "compressing"
+    | "uploading-image"
+    | "creating-metadata"
+    | "uploading-metadata"
+    | "minting"
+    | "success"
+    | "error";
   progress: number;
   error: any;
   ipId?: string;
@@ -128,7 +136,10 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
     });
   };
 
-  const isLoading = registerState.status !== "idle" && registerState.status !== "success" && registerState.status !== "error";
+  const isLoading =
+    registerState.status !== "idle" &&
+    registerState.status !== "success" &&
+    registerState.status !== "error";
   const isSuccess = registerState.status === "success";
   const isError = registerState.status === "error";
 
@@ -187,7 +198,9 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
   }
 
   return (
-    <div className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl mx-auto transition-opacity ${isLoading ? "opacity-75" : ""}`}>
+    <div
+      className={`bg-gradient-to-b from-slate-900/80 to-slate-950/60 rounded-2xl border border-slate-700/40 p-6 backdrop-blur-sm max-w-2xl mx-auto transition-opacity ${isLoading ? "opacity-75" : ""}`}
+    >
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -348,9 +361,13 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* AI Training Checkbox */}
       <div className="mb-6">
-        <label className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg transition-all ${
-          isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-slate-800/30"
-        }`}>
+        <label
+          className={`flex items-center gap-3 p-3 bg-slate-800/20 border border-slate-700/30 rounded-lg transition-all ${
+            isLoading
+              ? "opacity-50 cursor-not-allowed"
+              : "cursor-pointer hover:bg-slate-800/30"
+          }`}
+        >
           <input
             type="checkbox"
             checked={aiTraining}
