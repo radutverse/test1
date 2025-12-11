@@ -119,7 +119,7 @@ export const SearchResultsGrid = ({
           <span className="text-slate-400">Loading owner assets...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           {searchResults.map((asset, idx) => {
             const remixTypes = getRemixTypes(asset);
 
