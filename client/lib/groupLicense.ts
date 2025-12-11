@@ -9,8 +9,8 @@ import { LicenseTerms } from "@story-protocol/core-sdk";
 export const GROUPS = {
   SELFIE_REQUIRED: [5, 10],
   SUBMIT_REVIEW: [2, 3, 7, 8, 13, 15],
-  DIRECT_REGISTER_FIXED_AI: [1, 4, 6, 12],
-  DIRECT_REGISTER_MANUAL_AI: [9, 11, 14],
+  DIRECT_REGISTER_FIXED_AI: [1, 4, 12, 16],
+  DIRECT_REGISTER_MANUAL_AI: [6, 9, 11, 14],
 };
 
 export function getLicenseSettingsByGroup(
