@@ -215,7 +215,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
 
       {/* Error State */}
       {isError && registerState.error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <div className="mb-6 p-4 bg-red-500/10 rounded-lg">
           <p className="text-sm text-red-300">
             <span className="font-semibold">Error:</span> {registerState.error}
           </p>
