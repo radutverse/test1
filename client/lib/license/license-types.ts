@@ -5,6 +5,18 @@ export interface LicenseTypeInfo {
 }
 
 export const LICENSE_TYPES: Record<string, LicenseTypeInfo> = {
+  "non-commercial-social-remixing": {
+    name: "Non-Commercial Social Remixing",
+    description:
+      "Let the world build on and play with your creation. This license allows for endless free remixing while tracking all uses of your work while giving you full credit. Similar to: TikTok plus attribution.",
+    icon: "🎨",
+  },
+  "commercial-use": {
+    name: "Commercial Use",
+    description:
+      "Retain control over reuse of your work, while allowing anyone to appropriately use the work in exchange for the economic terms you set. Similar to Shutterstock with creator-set rules.",
+    icon: "💼",
+  },
   "commercial-remix": {
     name: "Commercial Remix",
     description:
