@@ -1348,76 +1348,19 @@ const IpAssistant = () => {
         lastUploadBlobRef.current = blob;
         lastUploadNameRef.current = f.name || "image.jpg";
 
-        // If in remix mode landing (browse/remix) either open analysis popup when whitelist matches
-        // or attach preview directly when no whitelist match
+        // If in remix mode landing (browse/remix), attach image as preview
         if (remixMode && messages.length === 0) {
-          setAttachmentLoading(true);
-          try {
-            // Calculate exact hash and perceptual hash for whitelist check
-            const hash = await calculateBlobHash(blob);
-            const pHash = await calculatePerceptualHash(blob);
-            let whitelistResult: any = { found: false };
-            try {
-              const res = await fetch("/api/check-remix-hash", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ hash, pHash }),
-              });
-              if (res.ok) {
-                whitelistResult = await res.json();
-              }
-            } catch (err) {
-              console.warn("Whitelist check failed:", err);
-            }
-
-            // If no whitelist match, attach image as preview in input box and skip popup
-            if (!whitelistResult || whitelistResult.found !== true) {
-              setPreviewImages((prev) => ({
-                ...prev,
-                remixImage: {
-                  blob,
-                  name: f.name || "image.jpg",
-                  url,
-                },
-                additionalImage: null,
-              }));
-              setInput("register");
-              setAttachmentLoading(false);
-              return;
-            }
-
-            // If whitelist matched, proceed to upload image for vision analysis and show modal
-            let analysisData: any = null;
-            try {
-              const form = new FormData();
-              form.append("image", blob, f.name || "image.jpg");
-              const uploadRes = await fetch("/api/upload", {
-                method: "POST",
-                body: form,
-              });
-              if (uploadRes.ok) {
-                analysisData = await uploadRes.json();
-              }
-            } catch (err) {
-              console.warn("Analysis upload failed:", err);
-            }
-
-            setRemixAnalysisData({
+          setPreviewImages((prev) => ({
+            ...prev,
+            remixImage: {
               blob,
               name: f.name || "image.jpg",
               url,
-              hash,
-              whitelist: whitelistResult,
-              analysis: analysisData,
-            });
-            setRemixAnalysisOpen(true);
-            setAttachmentLoading(false);
-            return;
-          } catch (err) {
-            console.error("Remix analysis failed:", err);
-            setAttachmentLoading(false);
-            // fallthrough to default attach behavior
-          }
+            },
+            additionalImage: null,
+          }));
+          setInput("register");
+          return;
         }
 
         // Default behavior: attach as additional image in chat
