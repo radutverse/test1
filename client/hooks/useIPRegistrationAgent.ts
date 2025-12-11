@@ -16,7 +16,7 @@ import {
   toIpfsUri,
   toHttps,
 } from "@/lib/utils/ipfs";
-import { sha256HexOfFile, keccakOfJson } from "@/lib/utils/crypto";
+import { sha256HexOfFile, sha256HexOfJson } from "@/lib/utils/crypto";
 import { compressAndEnsureSize } from "@/lib/utils/image";
 
 export type RegisterState = {
@@ -162,7 +162,28 @@ export function useIPRegistrationAgent() {
         const ipMetaUpload = await uploadJSON(ipMetadata);
         const ipMetaCid = extractCid(ipMetaUpload.cid || ipMetaUpload.url);
         const ipMetadataURI = toIpfsUri(ipMetaCid);
-        const ipMetadataHash = keccakOfJson(ipMetadata);
+        const ipMetadataHash = await sha256HexOfJson(ipMetadata);
+
+        // Create & upload separate NFT metadata
+        const nftMetadata = {
+          name: intent?.title || file.name,
+          description: `${intent?.prompt || ""} This NFT represents ownership of the IP Asset.`,
+          image: imageGateway,
+          animation_url: imageGateway,
+          attributes: [
+            {
+              trait_type: "Status",
+              value: isAiGeneratedGroup(group)
+                ? "AI Generated"
+                : "Human Generated",
+            },
+            { trait_type: "License", value: licenseSettings.pilType },
+          ],
+        };
+        const nftMetaUpload = await uploadJSON(nftMetadata);
+        const nftMetaCid = extractCid(nftMetaUpload.cid || nftMetaUpload.url);
+        const nftMetadataURI = toIpfsUri(nftMetaCid);
+        const nftMetadataHash = await sha256HexOfJson(nftMetadata);
 
         // Mint & Register
         setRegisterState((p) => ({ ...p, status: "minting", progress: 75 }));
@@ -187,8 +208,8 @@ export function useIPRegistrationAgent() {
           ipMetadata: {
             ipMetadataURI,
             ipMetadataHash: ipMetadataHash as `0x${string}`,
-            nftMetadataURI: ipMetadataURI,
-            nftMetadataHash: ipMetadataHash as `0x${string}`,
+            nftMetadataURI,
+            nftMetadataHash: nftMetadataHash as `0x${string}`,
           },
         });
 
