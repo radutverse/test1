@@ -9,7 +9,15 @@ import {
   canDirectRegister,
 } from "@/lib/groupLicense";
 import { getLicenseSettingsByType, toLicenseTerms } from "@/lib/license/terms";
-// ... import IPFS utils
+import {
+  uploadFile,
+  uploadJSON,
+  extractCid,
+  toIpfsUri,
+  toHttps,
+} from "@/lib/utils/ipfs";
+import { sha256HexOfFile, keccakOfJson } from "@/lib/utils/crypto";
+import { compressAndEnsureSize } from "@/lib/utils/image";
 
 export type RegisterState = {
   status: "idle" | "compressing" | "uploading-image" | "creating-metadata" | "uploading-metadata" | "minting" | "success" | "error";
