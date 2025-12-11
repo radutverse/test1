@@ -262,11 +262,16 @@ export const ExpandedAssetModal = ({
         </div>
 
         {/* Footer with Details and Actions */}
-        <div className="border-t border-slate-800/30 bg-slate-950/95 backdrop-blur-xl px-6 py-6 sm:py-8 space-y-6 flex-shrink-0">
+        <div className="border-t border-slate-800/40 bg-gradient-to-t from-slate-950/60 to-slate-900/30 backdrop-blur-xl px-6 py-6 sm:py-8 space-y-6 flex-shrink-0">
           {asset.description && (
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-sm text-slate-300 leading-relaxed font-light"
+            >
               {asset.description}
-            </p>
+            </motion.p>
           )}
 
           {/* Metadata Badges */}
