@@ -238,8 +238,8 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   };
 
   return (
-    <div className="bg-gray-800/40 rounded-lg overflow-hidden w-full">
-      <div className="flex flex-col lg:flex-row gap-4 p-5 lg:items-start">
+    <div className="w-full">
+      <div className="flex flex-col lg:flex-row gap-4 lg:items-start">
         {/* Left side: Image */}
         {imageUrl && (
           <div className="lg:w-1/3 flex-shrink-0">
