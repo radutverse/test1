@@ -121,14 +121,21 @@ export const demoGenerateImage: RequestHandler = async (req, res) => {
     // Simulate 3-second crafting delay
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    // Generate SVG
-    const svgString = await generateDemoSvgImage(prompt);
+    // Return custom image directly as data URL
+    const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
 
-    const base64 = Buffer.from(svgString).toString("base64");
-    const imageUrl = `data:image/svg+xml;base64,${base64}`;
-
-    console.log("✅ Demo image generated successfully");
-    res.json({ url: imageUrl });
+    try {
+      const imageUrl = await fetchImageAsDataUrl(customImageUrl);
+      console.log("✅ Demo image generated successfully");
+      res.json({ url: imageUrl });
+    } catch (fetchError) {
+      console.warn("Failed to fetch custom image, using fallback", fetchError);
+      // Fallback to SVG
+      const svgString = await generateDemoSvgImage(prompt);
+      const base64 = Buffer.from(svgString).toString("base64");
+      const imageUrl = `data:image/svg+xml;base64,${base64}`;
+      res.json({ url: imageUrl });
+    }
   } catch (err: any) {
     console.error("❌ Error generating demo image:", err);
     res.status(500).json({
@@ -153,14 +160,21 @@ export const demoEditImage: RequestHandler = async (req, res) => {
     // Simulate 3-second crafting delay
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    // For demo mode, just generate a new SVG-based image like generate
-    // (in real scenario, this would modify the uploaded image)
-    const svgString = await generateDemoSvgImage(prompt);
-    const base64 = Buffer.from(svgString).toString("base64");
-    const imageUrl = `data:image/svg+xml;base64,${base64}`;
+    // Return custom image directly as data URL
+    const customImageUrl = "https://cdn.builder.io/api/v1/image/assets%2F8b47a9dc49544656b302208a3bdb367f%2Fd8e8f3b606f0478d8702eb646bd205fa?format=webp&width=800";
 
-    console.log("✅ Demo image edited successfully");
-    res.json({ url: imageUrl });
+    try {
+      const imageUrl = await fetchImageAsDataUrl(customImageUrl);
+      console.log("✅ Demo image edited successfully");
+      res.json({ url: imageUrl });
+    } catch (fetchError) {
+      console.warn("Failed to fetch custom image, using fallback", fetchError);
+      // Fallback to SVG
+      const svgString = await generateDemoSvgImage(prompt);
+      const base64 = Buffer.from(svgString).toString("base64");
+      const imageUrl = `data:image/svg+xml;base64,${base64}`;
+      res.json({ url: imageUrl });
+    }
   } catch (err: any) {
     console.error("❌ Error editing demo image:", err);
     res.status(500).json({
