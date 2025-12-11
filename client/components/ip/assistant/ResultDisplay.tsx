@@ -28,7 +28,7 @@ const AnalysisSection: React.FC<{
 }> = ({ title, icon, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="border-t border-gray-700/20 first:border-t-0">
+    <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-800/30 focus:outline-none transition-all duration-200 group"
