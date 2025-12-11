@@ -387,27 +387,17 @@ export function useIPRegistrationAgent() {
         const addr = storyClientSetup.addr;
         const story = storyClientSetup.story;
 
-        // ✅ PERBAIKAN: licenseTermsData dengan format yang benar
+        // Commercial Remix license terms with proper Story SDK structure
         const licenseTermsData = [
           {
             terms: PILFlavor.commercialRemix({
-              commercialRevShare: Number(licenseSettings.revShare) || 0,
               defaultMintingFee: parseEther(
                 String(licenseSettings.licensePrice || 0),
               ),
+              commercialRevShare: Number(licenseSettings.revShare) || 0,
               currency: WIP_TOKEN_ADDRESS,
+              royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E",
             }),
-            // ✅ TAMBAHAN: licensingConfig (opsional tapi recommended)
-            licensingConfig: {
-              isSet: false,
-              mintingFee: 0n,
-              licensingHook: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-              hookData: "0x" as `0x${string}`,
-              commercialRevShare: 0,
-              disabled: false,
-              expectMinimumGroupRewardShare: 0,
-              expectGroupRewardPool: "0x0000000000000000000000000000000000000000" as `0x${string}`,
-            },
           },
         ];
 
