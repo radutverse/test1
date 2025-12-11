@@ -127,7 +127,7 @@ export const demoGenerateImage: RequestHandler = async (req, res) => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Generate SVG
-    const svgString = generateDemoSvgImage(prompt);
+    const svgString = await generateDemoSvgImage(prompt);
 
     const base64 = Buffer.from(svgString).toString("base64");
     const imageUrl = `data:image/svg+xml;base64,${base64}`;
@@ -160,7 +160,7 @@ export const demoEditImage: RequestHandler = async (req, res) => {
 
     // For demo mode, just generate a new SVG-based image like generate
     // (in real scenario, this would modify the uploaded image)
-    const svgString = generateDemoSvgImage(prompt);
+    const svgString = await generateDemoSvgImage(prompt);
     const base64 = Buffer.from(svgString).toString("base64");
     const imageUrl = `data:image/svg+xml;base64,${base64}`;
 
