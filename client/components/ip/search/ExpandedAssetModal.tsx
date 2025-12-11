@@ -329,15 +329,20 @@ export const ExpandedAssetModal = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-center pt-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.3 }}
+            className="flex justify-center pt-2"
+          >
             <button
               type="button"
               onClick={() => setShowLifecycle(true)}
-              className="text-sm px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500/40 to-purple-600/40 text-purple-200 border border-purple-500/50 font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/40 hover:from-purple-500/50 hover:to-purple-600/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+              className="text-sm px-8 py-3.5 rounded-xl bg-gradient-to-r from-purple-500/40 to-purple-600/40 text-purple-100 border border-purple-500/50 font-semibold transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/50 hover:from-purple-500/60 hover:to-purple-600/60 hover:border-purple-500/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 active:scale-95"
             >
               🔄 View Lifecycle
             </button>
-          </div>
+          </motion.div>
         </div>
       </motion.div>
 
