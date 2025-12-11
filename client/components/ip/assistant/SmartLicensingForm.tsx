@@ -207,16 +207,16 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">
           🎯 Smart Licensing
         </h3>
-        <p className="text-lg font-bold text-white">{title}</p>
+        <p className="text-sm font-bold text-white">{title}</p>
         {description && (
-          <p className="text-sm text-slate-300 mt-2">{description}</p>
+          <p className="text-xs text-slate-300 mt-2">{description}</p>
         )}
       </div>
 
       {/* Error State */}
       {isError && registerState.error && (
         <div className="mb-6 p-4 bg-red-500/10 rounded-lg">
-          <p className="text-sm text-red-300">
+          <p className="text-xs text-red-300">
             <span className="font-semibold">Error:</span> {registerState.error}
           </p>
         </div>
@@ -243,7 +243,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
               <div className="text-left">
                 <div className="flex items-center gap-2">
                   <span>{selectedLicenseInfo?.icon}</span>
-                  <span className="font-semibold text-white">
+                  <span className="text-xs font-semibold text-white">
                     {selectedLicenseInfo?.name}
                   </span>
                   {selectedLicenseType === recommendedLicenseType && (
@@ -279,7 +279,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span>{license.icon}</span>
-                      <span className="font-semibold text-white text-sm">
+                      <span className="text-xs font-semibold text-white">
                         {license.name}
                       </span>
                       {license.key === recommendedLicenseType && (
@@ -310,7 +310,7 @@ export const SmartLicensingForm: React.FC<SmartLicensingFormProps> = ({
       {/* License Description */}
       {selectedLicenseInfo && (
         <div className="mb-6 p-4 bg-slate-800/20 rounded-lg">
-          <p className="text-sm text-slate-300 leading-relaxed">
+          <p className="text-xs text-slate-300 leading-relaxed">
             {selectedLicenseInfo.description}
           </p>
         </div>
