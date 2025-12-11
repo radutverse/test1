@@ -293,19 +293,19 @@ export function useIPRegistrationAgent() {
           chainId: "mainnet", // Story Protocol Mainnet
         });
 
-        const result: any =
-          await story.ipAsset.mintAndRegisterIpAndAttachPILTerms({
+        const result: any = await story.ipAsset.registerIpAsset({
+          nft: {
+            type: "mint",
             spgNftContract: spg as `0x${string}`,
-            recipient: addr as `0x${string}`,
-            licenseTermsData,
-            ipMetadata: {
-              ipMetadataURI,
-              ipMetadataHash: ipMetadataHash as any,
-              nftMetadataURI: ipMetadataURI,
-              nftMetadataHash: ipMetadataHash as any,
-            },
-            allowDuplicates: true,
-          });
+          },
+          licenseTermsData,
+          ipMetadata: {
+            ipMetadataURI,
+            ipMetadataHash: ipMetadataHash as any,
+            nftMetadataURI: ipMetadataURI,
+            nftMetadataHash: ipMetadataHash as any,
+          },
+        });
 
         setRegisterState({
           status: "success",
