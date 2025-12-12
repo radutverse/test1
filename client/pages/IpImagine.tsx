@@ -422,124 +422,124 @@ const IpImagine = () => {
           </div>
           <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-auto">
             <IpImagineInput
-            input={input}
-            setInput={setInput}
-            waiting={waiting || isLoading}
-            previewImages={previewImages}
-            setPreviewImages={setPreviewImages}
-            uploadRef={uploadRef}
-            resultUrl={resultUrl}
-            resultUrls={resultUrls}
-            creations={creations}
-            onSubmit={async () => {
-              if (
-                !input.trim() &&
-                !previewImages.remixImage &&
-                !previewImages.additionalImage
-              )
-                return;
+              input={input}
+              setInput={setInput}
+              waiting={waiting || isLoading}
+              previewImages={previewImages}
+              setPreviewImages={setPreviewImages}
+              uploadRef={uploadRef}
+              resultUrl={resultUrl}
+              resultUrls={resultUrls}
+              creations={creations}
+              onSubmit={async () => {
+                if (
+                  !input.trim() &&
+                  !previewImages.remixImage &&
+                  !previewImages.additionalImage
+                )
+                  return;
 
-              if (creationMode === "video") {
-                setStatusText("🎬 Video generation is coming soon!");
-                return;
-              }
-
-              // Validation: Prevent paid remix without proper state
-              if (currentRemixType === "paid") {
-                if (!currentParentAsset) {
-                  setStatusText(
-                    "Paid remix requires parent asset data. Please select a paid remix again.",
-                  );
-                  setWaiting(false);
+                if (creationMode === "video") {
+                  setStatusText("🎬 Video generation is coming soon!");
                   return;
                 }
-                if (!authenticated || !primaryWalletAddress) {
-                  setStatusText(
-                    "Paid remix requires wallet connection. Please connect your wallet.",
-                  );
-                  setWaiting(false);
-                  return;
+
+                // Validation: Prevent paid remix without proper state
+                if (currentRemixType === "paid") {
+                  if (!currentParentAsset) {
+                    setStatusText(
+                      "Paid remix requires parent asset data. Please select a paid remix again.",
+                    );
+                    setWaiting(false);
+                    return;
+                  }
+                  if (!authenticated || !primaryWalletAddress) {
+                    setStatusText(
+                      "Paid remix requires wallet connection. Please connect your wallet.",
+                    );
+                    setWaiting(false);
+                    return;
+                  }
                 }
-              }
 
-              setWaiting(true);
-              setStatusText("⏳ Starting generation...");
+                setWaiting(true);
+                setStatusText("⏳ Starting generation...");
 
-              try {
-                const imageToSend =
-                  previewImages.remixImage || previewImages.additionalImage;
-                let imageData:
-                  | { imageBytes: string; mimeType: string }
-                  | undefined;
+                try {
+                  const imageToSend =
+                    previewImages.remixImage || previewImages.additionalImage;
+                  let imageData:
+                    | { imageBytes: string; mimeType: string }
+                    | undefined;
 
-                if (imageToSend) {
-                  const blob = imageToSend.blob;
-                  const arrayBuffer = await blob.arrayBuffer();
-                  const bytes = new Uint8Array(arrayBuffer);
+                  if (imageToSend) {
+                    const blob = imageToSend.blob;
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
 
-                  // Convert Uint8Array to base64 safely without stack overflow issues
-                  let binaryString = "";
-                  const chunkSize = 8192;
-                  for (let i = 0; i < bytes.length; i += chunkSize) {
-                    const chunk = bytes.subarray(
-                      i,
-                      Math.min(i + chunkSize, bytes.length),
-                    );
-                    binaryString += String.fromCharCode.apply(
-                      null,
-                      Array.from(chunk),
-                    );
+                    // Convert Uint8Array to base64 safely without stack overflow issues
+                    let binaryString = "";
+                    const chunkSize = 8192;
+                    for (let i = 0; i < bytes.length; i += chunkSize) {
+                      const chunk = bytes.subarray(
+                        i,
+                        Math.min(i + chunkSize, bytes.length),
+                      );
+                      binaryString += String.fromCharCode.apply(
+                        null,
+                        Array.from(chunk),
+                      );
+                    }
+
+                    imageData = {
+                      imageBytes: btoa(binaryString),
+                      mimeType: blob.type || "image/jpeg",
+                    };
                   }
 
-                  imageData = {
-                    imageBytes: btoa(binaryString),
-                    mimeType: blob.type || "image/jpeg",
-                  };
+                  await generate(creationMode, {
+                    prompt: input,
+                    image: imageData,
+                    remixType: currentRemixType,
+                    parentAsset: currentParentAsset,
+                  });
+
+                  setInput("");
+                  setPreviewImages({ remixImage: null, additionalImage: null });
+                  setCurrentRemixType(null);
+                  setCurrentParentAsset(null);
+                } catch (error) {
+                  console.error("Generation error:", error);
+                  setStatusText("❌ Generation failed. Please try again.");
+                } finally {
+                  setWaiting(false);
                 }
-
-                await generate(creationMode, {
-                  prompt: input,
-                  image: imageData,
-                  remixType: currentRemixType,
-                  parentAsset: currentParentAsset,
-                });
-
-                setInput("");
-                setPreviewImages({ remixImage: null, additionalImage: null });
-                setCurrentRemixType(null);
-                setCurrentParentAsset(null);
-              } catch (error) {
-                console.error("Generation error:", error);
-                setStatusText("❌ Generation failed. Please try again.");
-              } finally {
+              }}
+              inputRef={inputRef}
+              handleKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  // trigger submit
+                  (
+                    document.querySelector(
+                      "[data-chat-input]",
+                    ) as HTMLTextAreaElement
+                  )?.blur();
+                }
+              }}
+              suggestions={[]}
+              setSuggestions={() => {}}
+              attachmentLoading={attachmentLoading}
+              onRemixRegisterWarning={() => {
                 setWaiting(false);
-              }
-            }}
-            inputRef={inputRef}
-            handleKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                // trigger submit
-                (
-                  document.querySelector(
-                    "[data-chat-input]",
-                  ) as HTMLTextAreaElement
-                )?.blur();
-              }
-            }}
-            suggestions={[]}
-            setSuggestions={() => {}}
-            attachmentLoading={attachmentLoading}
-            onRemixRegisterWarning={() => {
-              setWaiting(false);
-              setStatusText(
-                "⚠ Remix images cannot be registered. Please remove the image to register.",
-              );
-            }}
-            onAddRemixImage={() => setShowAddRemixImageModal(true)}
-            creationMode={creationMode}
-            setCreationMode={setCreationMode}
-          />
+                setStatusText(
+                  "⚠ Remix images cannot be registered. Please remove the image to register.",
+                );
+              }}
+              onAddRemixImage={() => setShowAddRemixImageModal(true)}
+              creationMode={creationMode}
+              setCreationMode={setCreationMode}
+            />
           </div>
         </div>
       </div>
