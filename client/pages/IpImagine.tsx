@@ -408,8 +408,8 @@ const IpImagine = () => {
           className="absolute inset-0 w-full h-full object-cover"
           src="https://cdn.builder.io/o/assets%2F2d031ad4ed8b46218a271cc55fdf3f5f%2F84477b6c6c134698a664cfde4f6a245a?alt=media&token=25dbdbfa-44dc-4217-bfdb-4bf384885d59&apiKey=2d031ad4ed8b46218a271cc55fdf3f5f"
         />
-        <div className="relative z-10 flex flex-col w-full h-full">
-          <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 pb-24 flex-1 overflow-y-auto bg-transparent scroll-smooth">
+        <div className="relative w-full h-full">
+          <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 overflow-y-auto bg-transparent scroll-smooth absolute inset-0">
             <AnimatePresence initial={false} mode="popLayout">
               <CatalogBrowser
                 key="catalog-browser"
@@ -420,7 +420,8 @@ const IpImagine = () => {
 
             <div />
           </div>
-          <IpImagineInput
+          <div className="relative z-20 pointer-events-auto">
+            <IpImagineInput
             input={input}
             setInput={setInput}
             waiting={waiting || isLoading}
@@ -539,6 +540,7 @@ const IpImagine = () => {
             creationMode={creationMode}
             setCreationMode={setCreationMode}
           />
+          </div>
         </div>
       </div>
 
