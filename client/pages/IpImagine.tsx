@@ -409,7 +409,7 @@ const IpImagine = () => {
           src="https://cdn.builder.io/o/assets%2F2d031ad4ed8b46218a271cc55fdf3f5f%2F84477b6c6c134698a664cfde4f6a245a?alt=media&token=25dbdbfa-44dc-4217-bfdb-4bf384885d59&apiKey=2d031ad4ed8b46218a271cc55fdf3f5f"
         />
         <div className="relative w-full h-full flex flex-col">
-          <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 overflow-y-auto bg-transparent scroll-smooth flex-1">
+          <div className="chat-box px-3 sm:px-4 md:px-12 pt-4 pb-48 overflow-y-auto bg-transparent scroll-smooth flex-1">
             <AnimatePresence initial={false} mode="popLayout">
               <CatalogBrowser
                 key="catalog-browser"
